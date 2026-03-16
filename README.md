@@ -1,0 +1,254 @@
+# Facturino Python SDK
+
+Official Python client library for the [Facturino API](https://facturino.com/docs/api) — developer-first e-invoicing for France.
+
+[![PyPI version](https://img.shields.io/pypi/v/facturino.svg)](https://pypi.org/project/facturino/)
+[![Python versions](https://img.shields.io/pypi/pyversions/facturino.svg)](https://pypi.org/project/facturino/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Installation
+
+```bash
+pip install facturino
+```
+
+Requires Python 3.9+.
+
+## Quick Start
+
+```python
+import facturino
+
+client = facturino.Client("fac_test_xxx")
+
+# Create a customer
+customer = client.customers.create(
+    name="ACME Corp",
+    type="company",
+    email="billing@acme.com",
+    siret="12345678901234",
+)
+
+# Create a draft invoice
+invoice = client.invoices.create(
+    customer=customer["id"],
+    items=[{
+        "description": "Consulting services",
+        "quantity": 1,
+        "unit_price": 10000,   # 100.00 EUR (integer centimes)
+        "vat_rate": 2000,      # 20.00% (integer centipercent)
+    }],
+)
+
+# Finalize the invoice (assigns number, locks editing)
+finalized = client.invoices.finalize(invoice["id"])
+print(f"Invoice {finalized['number']} finalized")
+
+# Send to the e-invoicing platform (PA)
+client.invoices.send(finalized["id"])
+```
+
+## Amount Conventions
+
+All monetary amounts are expressed as **integers in centimes** (1 EUR = 100):
+
+| Value | Integer | Meaning |
+|-------|---------|---------|
+| 100.00 EUR | `10000` | unit_price |
+| 20.00% | `2000` | vat_rate (centipercent) |
+| 5.50% | `550` | vat_rate (centipercent) |
+
+## Auto-Pagination
+
+List endpoints return a `SyncPage` that automatically fetches subsequent pages when iterated:
+
+```python
+# Iterate through ALL invoices, 25 at a time
+for invoice in client.invoices.list(limit=25):
+    print(invoice["id"], invoice["status"])
+
+# Access a single page without auto-pagination
+page = client.invoices.list(limit=10)
+print(page.data)       # list of items on this page
+print(page.has_more)   # whether more items exist
+```
+
+## Async Support
+
+An async client is available for use with `asyncio`:
+
+```python
+import asyncio
+import facturino
+
+async def main():
+    async with facturino.AsyncClient("fac_test_xxx") as client:
+        invoice = await client.invoices.create(
+            customer="cus_xxx",
+            items=[{"description": "Widget", "quantity": 2, "unit_price": 5000, "vat_rate": 2000}],
+        )
+
+        async for inv in await client.invoices.list():
+            print(inv["id"])
+
+asyncio.run(main())
+```
+
+## Available Resources
+
+| Resource | Methods |
+|----------|---------|
+| `client.invoices` | `create`, `list`, `get`, `update`, `delete`, `finalize`, `send`, `cancel`, `remind`, `clone`, `get_pdf`, `get_facturx`, `get_xml`, `get_status`, `verify`, `list_events`, `get_audit_trail`, `generate_audit_trail_pdf`, `create_payment_link`, `create_payment_token` |
+| `client.payments` | `create(invoice_id, ...)`, `get(invoice_id, payment_id)`, `list(invoice_id)` |
+| `client.customers` | `create`, `list`, `get`, `update`, `delete`, `lookup`, `import_csv`, `export_csv` |
+| `client.products` | `create`, `list`, `get`, `update`, `delete`, `import_csv`, `export_csv` |
+| `client.quotes` | `create`, `list`, `get`, `update`, `delete`, `send`, `accept`, `refuse`, `convert`, `get_pdf` |
+| `client.credit_notes` | `create`, `list`, `get`, `update`, `delete`, `finalize`, `send`, `get_pdf` |
+| `client.events` | `list`, `get`, `retry` |
+| `client.webhook_endpoints` | `create`, `list`, `get`, `update`, `delete` |
+| `client.recurring_invoices` | `create`, `list`, `get`, `update`, `delete`, `activate`, `deactivate` |
+| `client.companies` | `list`, `get`, `update`, `upload_cgv`, `get_cgv`, `delete_cgv` |
+| `client.members` | `list`, `get`, `invite`, `update_role`, `revoke` |
+| `client.api_keys` | `create`, `list`, `get`, `revoke`, `roll` |
+| `client.exports` | `generate_fec`, `get_fec_status`, `export_rgpd`, `get_status` |
+| `client.ereporting` | `list`, `get`, `create_declaration`, `submit_declaration` |
+| `client.jobs` | `get` |
+| `client.sandbox` | `reset_data`, `simulate_status`, `create_fixtures` |
+
+## Recording Payments
+
+Payments are a sub-resource of invoices:
+
+```python
+# Record a payment (amount in centimes)
+payment = client.payments.create(
+    "inv_xxx",
+    amount=12000,          # 120.00 EUR
+    method="transfer",
+    paid_at="2026-03-15",
+    reference="VIR-2026-001",
+)
+
+# List payments for an invoice
+for payment in client.payments.list("inv_xxx"):
+    print(payment["amount"], payment["method"])
+```
+
+## Webhook Verification
+
+Verify incoming webhook signatures using HMAC-SHA256:
+
+```python
+import facturino
+
+# In your webhook handler (Flask, FastAPI, Django, etc.)
+payload = request.body                                    # raw bytes
+signature = request.headers["Facturino-Signature"]        # signature header
+endpoint_secret = "whsec_..."                             # your endpoint secret
+
+try:
+    event = facturino.Webhook.construct_event(payload, signature, endpoint_secret)
+    print(f"Received event: {event['type']}")
+
+    if event["type"] == "invoice.paid":
+        invoice_id = event["data"]["id"]
+        # Handle paid invoice...
+
+except facturino.SignatureVerificationError as e:
+    print(f"Invalid signature: {e}")
+    # Return 400
+```
+
+## Error Handling
+
+All API errors are raised as typed exceptions:
+
+```python
+import facturino
+
+client = facturino.Client("fac_test_xxx")
+
+try:
+    client.invoices.get("inv_nonexistent")
+except facturino.NotFoundError as e:
+    print(f"Not found: {e.message}")
+    print(f"Request ID: {e.request_id}")
+except facturino.AuthenticationError:
+    print("Invalid API key")
+except facturino.RateLimitError as e:
+    print(f"Rate limited. Retry after {e.retry_after}s")
+except facturino.PlanLimitError:
+    print("Feature not available on your plan")
+except facturino.ApiError as e:
+    print(f"API error {e.status_code}: {e.message}")
+```
+
+**Error hierarchy:**
+
+```
+FacturinoError
+  ApiError
+    AuthenticationError     (401)
+    PermissionDeniedError        (403)
+    NotFoundError           (404)
+    InvalidRequestError     (400)
+    ValidationError         (422)
+    PlanLimitError          (402)
+    ConflictError           (409)
+    RateLimitError          (429)
+    ServerError             (5xx)
+  SignatureVerificationError
+```
+
+## Retries
+
+The client automatically retries on transient failures (HTTP 429, 500, 502, 503) with exponential backoff. The `Retry-After` header is respected on 429 responses.
+
+```python
+# Customize retry behavior
+client = facturino.Client(
+    "fac_test_xxx",
+    max_retries=5,     # default: 3
+    timeout=60.0,      # default: 30s
+)
+```
+
+## Idempotency
+
+All POST requests automatically include an `Idempotency-Key` header (UUID v4). You can provide your own when creating resources:
+
+```python
+invoice = client.invoices.create(
+    customer="cus_xxx",
+    items=[...],
+    idempotency_key="unique-request-id-123",
+)
+```
+
+## Sandbox
+
+Test your integration using sandbox utilities (requires `fac_test_*` API key):
+
+```python
+# Reset test data and reload fixtures
+result = client.sandbox.reset_data()
+print(f"Deleted {result['deleted_count']} items, created {result['fixtures_created']} fixtures")
+
+# Simulate a PA status change
+client.sandbox.simulate_status("inv_test_123", "approved")
+```
+
+## Development
+
+```bash
+git clone https://github.com/facturino/facturino-python.git
+cd facturino-python
+pip install -e ".[dev]"
+pytest -v
+ruff check .
+mypy facturino/
+```
+
+## License
+
+MIT
