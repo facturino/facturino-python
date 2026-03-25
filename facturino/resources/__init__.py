@@ -10,10 +10,13 @@ from .exports import AsyncExports, Exports
 from .invoices import AsyncInvoices, Invoices
 from .jobs import AsyncJobs, Jobs
 from .members import AsyncMembers, Members
+from .mfa import AsyncMfa, Mfa
 from .payments import AsyncPayments, Payments
 from .products import AsyncProducts, Products
 from .quotes import AsyncQuotes, Quotes
+from .received_invoices import AsyncReceivedInvoices, ReceivedInvoices
 from .recurring_invoices import AsyncRecurringInvoices, RecurringInvoices
+from .reporting import AsyncReporting, Reporting
 from .sandbox import AsyncSandbox, Sandbox
 from .webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
 
@@ -38,14 +41,20 @@ __all__ = [
     "AsyncJobs",
     "Members",
     "AsyncMembers",
+    "Mfa",
+    "AsyncMfa",
     "Payments",
     "AsyncPayments",
     "Products",
     "AsyncProducts",
     "Quotes",
     "AsyncQuotes",
+    "ReceivedInvoices",
+    "AsyncReceivedInvoices",
     "RecurringInvoices",
     "AsyncRecurringInvoices",
+    "Reporting",
+    "AsyncReporting",
     "Sandbox",
     "AsyncSandbox",
     "WebhookEndpoints",

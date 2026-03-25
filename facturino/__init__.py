@@ -72,10 +72,13 @@ from .resources.exports import AsyncExports, Exports
 from .resources.invoices import AsyncInvoices, Invoices
 from .resources.jobs import AsyncJobs, Jobs
 from .resources.members import AsyncMembers, Members
+from .resources.mfa import AsyncMfa, Mfa
 from .resources.payments import AsyncPayments, Payments
 from .resources.products import AsyncProducts, Products
 from .resources.quotes import AsyncQuotes, Quotes
+from .resources.received_invoices import AsyncReceivedInvoices, ReceivedInvoices
 from .resources.recurring_invoices import AsyncRecurringInvoices, RecurringInvoices
+from .resources.reporting import AsyncReporting, Reporting
 from .resources.sandbox import AsyncSandbox, Sandbox
 from .resources.webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
 
@@ -148,11 +151,14 @@ class Client:
         self.events = Events(self._http)
         self.webhook_endpoints = WebhookEndpoints(self._http)
         self.recurring_invoices = RecurringInvoices(self._http)
+        self.received_invoices = ReceivedInvoices(self._http)
         self.companies = Companies(self._http)
         self.members = Members(self._http)
         self.api_keys = ApiKeys(self._http)
         self.exports = Exports(self._http)
         self.ereporting = Ereporting(self._http)
+        self.reporting = Reporting(self._http)
+        self.mfa = Mfa(self._http)
         self.jobs = Jobs(self._http)
         self.sandbox = Sandbox(self._http)
 
@@ -216,11 +222,14 @@ class AsyncClient:
         self.events = AsyncEvents(self._http)
         self.webhook_endpoints = AsyncWebhookEndpoints(self._http)
         self.recurring_invoices = AsyncRecurringInvoices(self._http)
+        self.received_invoices = AsyncReceivedInvoices(self._http)
         self.companies = AsyncCompanies(self._http)
         self.members = AsyncMembers(self._http)
         self.api_keys = AsyncApiKeys(self._http)
         self.exports = AsyncExports(self._http)
         self.ereporting = AsyncEreporting(self._http)
+        self.reporting = AsyncReporting(self._http)
+        self.mfa = AsyncMfa(self._http)
         self.jobs = AsyncJobs(self._http)
         self.sandbox = AsyncSandbox(self._http)
 
