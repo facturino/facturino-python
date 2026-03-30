@@ -42,6 +42,48 @@ class Companies:
         resp = self._client.delete(f"/v1/companies/{company_id}/cgv")
         return resp.json()  # type: ignore[no-any-return]
 
+    # --- PA Connection (BYOPA) ---
+
+    def connect_pa(self, company_id: str, **params: Any) -> dict[str, Any]:
+        """Connect a PA — the client provides their own PA account credentials."""
+        resp = self._client.post(f"/v1/companies/{company_id}/pa-connection", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
+    def disconnect_pa(self, company_id: str) -> dict[str, Any]:
+        """Disconnect the PA from a company."""
+        resp = self._client.delete(f"/v1/companies/{company_id}/pa-connection")
+        return resp.json()  # type: ignore[no-any-return]
+
+    def test_pa_connection(self, company_id: str) -> dict[str, Any]:
+        """Test the PA connection (health check + credential validation)."""
+        resp = self._client.post(f"/v1/companies/{company_id}/pa-connection/test", json={})
+        return resp.json()  # type: ignore[no-any-return]
+
+    # --- Stripe Connect ---
+
+    def connect_stripe(self, **params: Any) -> dict[str, Any]:
+        """Initiate Stripe Connect onboarding.
+
+        Returns:
+            A dict with the Stripe Connect account link URL.
+        """
+        resp = self._client.post("/v1/companies/stripe-connect", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
+    def get_stripe_dashboard(self) -> dict[str, Any]:
+        """Get a Stripe Express dashboard login link.
+
+        Returns:
+            A dict with the Stripe dashboard URL.
+        """
+        resp = self._client.get("/v1/companies/stripe-dashboard")
+        return resp.json()  # type: ignore[no-any-return]
+
+    def disconnect_stripe(self) -> dict[str, Any]:
+        """Disconnect the Stripe Connect account."""
+        resp = self._client.delete("/v1/companies/stripe-connect")
+        return resp.json()  # type: ignore[no-any-return]
+
 
 class AsyncCompanies:
     """Asynchronous companies resource.
@@ -76,4 +118,46 @@ class AsyncCompanies:
 
     async def delete_cgv(self, company_id: str) -> dict[str, Any]:
         resp = await self._client.delete(f"/v1/companies/{company_id}/cgv")
+        return resp.json()  # type: ignore[no-any-return]
+
+    # --- PA Connection (BYOPA) ---
+
+    async def connect_pa(self, company_id: str, **params: Any) -> dict[str, Any]:
+        """Connect a PA — the client provides their own PA account credentials."""
+        resp = await self._client.post(f"/v1/companies/{company_id}/pa-connection", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def disconnect_pa(self, company_id: str) -> dict[str, Any]:
+        """Disconnect the PA from a company."""
+        resp = await self._client.delete(f"/v1/companies/{company_id}/pa-connection")
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def test_pa_connection(self, company_id: str) -> dict[str, Any]:
+        """Test the PA connection (health check + credential validation)."""
+        resp = await self._client.post(f"/v1/companies/{company_id}/pa-connection/test", json={})
+        return resp.json()  # type: ignore[no-any-return]
+
+    # --- Stripe Connect ---
+
+    async def connect_stripe(self, **params: Any) -> dict[str, Any]:
+        """Initiate Stripe Connect onboarding.
+
+        Returns:
+            A dict with the Stripe Connect account link URL.
+        """
+        resp = await self._client.post("/v1/companies/stripe-connect", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def get_stripe_dashboard(self) -> dict[str, Any]:
+        """Get a Stripe Express dashboard login link.
+
+        Returns:
+            A dict with the Stripe dashboard URL.
+        """
+        resp = await self._client.get("/v1/companies/stripe-dashboard")
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def disconnect_stripe(self) -> dict[str, Any]:
+        """Disconnect the Stripe Connect account."""
+        resp = await self._client.delete("/v1/companies/stripe-connect")
         return resp.json()  # type: ignore[no-any-return]

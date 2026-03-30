@@ -74,6 +74,14 @@ class CreditNotes:
             return resp.content
         return resp.json()
 
+    def get_facturx(self, credit_note_id: str) -> dict[str, Any]:
+        """Get or generate a Factur-X PDF/A-3 document for a credit note.
+
+        Returns either a signed download URL or a 202 job object.
+        """
+        resp = self._client.get(f"/v1/credit-notes/{credit_note_id}/facturx")
+        return resp.json()  # type: ignore[no-any-return]
+
 
 class AsyncCreditNotes:
     """Asynchronous credit notes resource.
@@ -140,3 +148,11 @@ class AsyncCreditNotes:
         if "application/pdf" in content_type:
             return resp.content
         return resp.json()
+
+    async def get_facturx(self, credit_note_id: str) -> dict[str, Any]:
+        """Get or generate a Factur-X PDF/A-3 document for a credit note.
+
+        Returns either a signed download URL or a 202 job object.
+        """
+        resp = await self._client.get(f"/v1/credit-notes/{credit_note_id}/facturx")
+        return resp.json()  # type: ignore[no-any-return]

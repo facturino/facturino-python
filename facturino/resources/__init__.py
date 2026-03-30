@@ -1,6 +1,7 @@
 """Facturino API resource modules."""
 
 from .api_keys import ApiKeys, AsyncApiKeys
+from .archives import Archives, AsyncArchives
 from .companies import AsyncCompanies, Companies
 from .credit_notes import AsyncCreditNotes, CreditNotes
 from .customers import AsyncCustomers, Customers
@@ -23,6 +24,8 @@ from .webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
 __all__ = [
     "ApiKeys",
     "AsyncApiKeys",
+    "Archives",
+    "AsyncArchives",
     "Companies",
     "AsyncCompanies",
     "CreditNotes",

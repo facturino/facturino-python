@@ -69,11 +69,11 @@ class RecurringInvoices:
     def delete(self, recurring_id: str) -> None:
         self._client.delete(f"/v1/recurring-invoices/{recurring_id}")
 
-    def activate(self, recurring_id: str) -> dict[str, Any]:
+    def resume(self, recurring_id: str) -> dict[str, Any]:
         resp = self._client.post(f"/v1/recurring-invoices/{recurring_id}/resume")
         return resp.json()  # type: ignore[no-any-return]
 
-    def deactivate(self, recurring_id: str) -> dict[str, Any]:
+    def pause(self, recurring_id: str) -> dict[str, Any]:
         resp = self._client.post(f"/v1/recurring-invoices/{recurring_id}/pause")
         return resp.json()  # type: ignore[no-any-return]
 
@@ -139,10 +139,10 @@ class AsyncRecurringInvoices:
     async def delete(self, recurring_id: str) -> None:
         await self._client.delete(f"/v1/recurring-invoices/{recurring_id}")
 
-    async def activate(self, recurring_id: str) -> dict[str, Any]:
+    async def resume(self, recurring_id: str) -> dict[str, Any]:
         resp = await self._client.post(f"/v1/recurring-invoices/{recurring_id}/resume")
         return resp.json()  # type: ignore[no-any-return]
 
-    async def deactivate(self, recurring_id: str) -> dict[str, Any]:
+    async def pause(self, recurring_id: str) -> dict[str, Any]:
         resp = await self._client.post(f"/v1/recurring-invoices/{recurring_id}/pause")
         return resp.json()  # type: ignore[no-any-return]

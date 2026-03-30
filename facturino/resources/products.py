@@ -5,7 +5,6 @@ CRUD operations and CSV import/export for product catalog.
 
 from __future__ import annotations
 
-import builtins
 from typing import Any
 
 from .._client import AsyncHttpClient, SyncHttpClient
@@ -59,14 +58,14 @@ class Products:
     def delete(self, product_id: str) -> None:
         self._client.delete(f"/v1/products/{product_id}")
 
-    def import_csv(self, rows: builtins.list[dict[str, Any]]) -> dict[str, Any]:
-        """Import products from CSV rows (max 1000). Returns a job object (202 Accepted)."""
-        resp = self._client.post("/v1/products/import", json={"rows": rows})
+    def import_csv(self, csv_string: str) -> dict[str, Any]:
+        """Import products from a CSV string (max 1000 rows). Returns a job object (202 Accepted)."""
+        resp = self._client.post("/v1/products/import", json={"csv": csv_string})
         return resp.json()  # type: ignore[no-any-return]
 
     def export_csv(self) -> dict[str, Any]:
         """Export products as CSV. Returns a job object (202 Accepted)."""
-        resp = self._client.post("/v1/products/export")
+        resp = self._client.get("/v1/products/export")
         return resp.json()  # type: ignore[no-any-return]
 
 
@@ -120,12 +119,12 @@ class AsyncProducts:
     async def delete(self, product_id: str) -> None:
         await self._client.delete(f"/v1/products/{product_id}")
 
-    async def import_csv(self, rows: builtins.list[dict[str, Any]]) -> dict[str, Any]:
-        """Import products from CSV rows (max 1000). Returns a job object (202 Accepted)."""
-        resp = await self._client.post("/v1/products/import", json={"rows": rows})
+    async def import_csv(self, csv_string: str) -> dict[str, Any]:
+        """Import products from a CSV string (max 1000 rows). Returns a job object (202 Accepted)."""
+        resp = await self._client.post("/v1/products/import", json={"csv": csv_string})
         return resp.json()  # type: ignore[no-any-return]
 
     async def export_csv(self) -> dict[str, Any]:
         """Export products as CSV. Returns a job object (202 Accepted)."""
-        resp = await self._client.post("/v1/products/export")
+        resp = await self._client.get("/v1/products/export")
         return resp.json()  # type: ignore[no-any-return]

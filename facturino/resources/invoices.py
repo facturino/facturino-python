@@ -169,6 +169,23 @@ class Invoices:
         resp = self._client.post(f"/v1/invoices/{invoice_id}/payment-token")
         return resp.json()  # type: ignore[no-any-return]
 
+    def create_incoming(self, **params: Any) -> dict[str, Any]:
+        """Create an incoming invoice (received from a supplier).
+
+        Args:
+            **params: Incoming invoice fields.
+
+        Returns:
+            The created incoming invoice dict.
+        """
+        resp = self._client.post("/v1/invoices/incoming", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
+    def list_incoming(self, **params: Any) -> SyncPage:
+        """List incoming invoices."""
+        resp = self._client.get("/v1/invoices/incoming", params=params)
+        return SyncPage.from_response(resp.json(), fetcher=self.list_incoming, original_params=params)
+
 
 class AsyncInvoices:
     """Asynchronous invoices resource.
@@ -324,3 +341,20 @@ class AsyncInvoices:
         """Pro+ only."""
         resp = await self._client.post(f"/v1/invoices/{invoice_id}/payment-token")
         return resp.json()  # type: ignore[no-any-return]
+
+    async def create_incoming(self, **params: Any) -> dict[str, Any]:
+        """Create an incoming invoice (received from a supplier).
+
+        Args:
+            **params: Incoming invoice fields.
+
+        Returns:
+            The created incoming invoice dict.
+        """
+        resp = await self._client.post("/v1/invoices/incoming", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def list_incoming(self, **params: Any) -> AsyncPage:
+        """List incoming invoices."""
+        resp = await self._client.get("/v1/invoices/incoming", params=params)
+        return AsyncPage.from_response(resp.json(), fetcher=self.list_incoming, original_params=params)

@@ -49,6 +49,11 @@ class Exports:
         resp = self._client.get(f"/v1/exports/{job_id}")
         return resp.json()  # type: ignore[no-any-return]
 
+    def export_invoices(self) -> dict[str, Any]:
+        """Bulk export all finalized invoices as ZIP (Factur-X PDF + CII XML). All plans."""
+        resp = self._client.post("/v1/exports/invoices")
+        return resp.json()  # type: ignore[no-any-return]
+
 
 class AsyncExports:
     """Asynchronous exports resource.
@@ -87,4 +92,9 @@ class AsyncExports:
     async def get_status(self, job_id: str) -> dict[str, Any]:
         """Returns download_url when completed."""
         resp = await self._client.get(f"/v1/exports/{job_id}")
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def export_invoices(self) -> dict[str, Any]:
+        """Bulk export all finalized invoices as ZIP (Factur-X PDF + CII XML). All plans."""
+        resp = await self._client.post("/v1/exports/invoices")
         return resp.json()  # type: ignore[no-any-return]

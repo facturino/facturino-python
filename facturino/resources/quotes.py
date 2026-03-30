@@ -78,6 +78,11 @@ class Quotes:
             return resp.content
         return resp.json()
 
+    def get_signature_proof(self, quote_id: str) -> dict[str, Any]:
+        """Get the electronic signature proof for an accepted quote."""
+        resp = self._client.get(f"/v1/quotes/{quote_id}/signature-proof")
+        return resp.json()  # type: ignore[no-any-return]
+
 
 class AsyncQuotes:
     """Asynchronous quotes resource.
@@ -148,3 +153,8 @@ class AsyncQuotes:
         if "application/pdf" in content_type:
             return resp.content
         return resp.json()
+
+    async def get_signature_proof(self, quote_id: str) -> dict[str, Any]:
+        """Get the electronic signature proof for an accepted quote."""
+        resp = await self._client.get(f"/v1/quotes/{quote_id}/signature-proof")
+        return resp.json()  # type: ignore[no-any-return]

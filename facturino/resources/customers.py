@@ -5,7 +5,6 @@ CRUD operations, Sirene/VIES lookup, and CSV import/export.
 
 from __future__ import annotations
 
-import builtins
 from typing import Any
 
 from .._client import AsyncHttpClient, SyncHttpClient
@@ -64,16 +63,16 @@ class Customers:
         resp = self._client.post("/v1/customers/lookup", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
-    def import_csv(self, rows: builtins.list[dict[str, Any]]) -> dict[str, Any]:
-        """Import customers from CSV rows (max 1000 rows).
+    def import_csv(self, csv_string: str) -> dict[str, Any]:
+        """Import customers from a CSV string (max 1000 rows).
 
         Args:
-            rows: List of customer dicts to import.
+            csv_string: CSV-formatted string to import.
 
         Returns:
             Job object (202 Accepted).
         """
-        resp = self._client.post("/v1/customers/import", json={"rows": rows})
+        resp = self._client.post("/v1/customers/import", json={"csv": csv_string})
         return resp.json()  # type: ignore[no-any-return]
 
     def export_csv(self) -> dict[str, Any]:
@@ -82,7 +81,7 @@ class Customers:
         Returns:
             Job object (202 Accepted).
         """
-        resp = self._client.post("/v1/customers/export")
+        resp = self._client.get("/v1/customers/export")
         return resp.json()  # type: ignore[no-any-return]
 
 
@@ -138,12 +137,12 @@ class AsyncCustomers:
         resp = await self._client.post("/v1/customers/lookup", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
-    async def import_csv(self, rows: builtins.list[dict[str, Any]]) -> dict[str, Any]:
-        """Import customers from CSV rows (max 1000 rows).
+    async def import_csv(self, csv_string: str) -> dict[str, Any]:
+        """Import customers from a CSV string (max 1000 rows).
 
         Returns a job object (202 Accepted).
         """
-        resp = await self._client.post("/v1/customers/import", json={"rows": rows})
+        resp = await self._client.post("/v1/customers/import", json={"csv": csv_string})
         return resp.json()  # type: ignore[no-any-return]
 
     async def export_csv(self) -> dict[str, Any]:
@@ -151,5 +150,5 @@ class AsyncCustomers:
 
         Returns a job object (202 Accepted).
         """
-        resp = await self._client.post("/v1/customers/export")
+        resp = await self._client.get("/v1/customers/export")
         return resp.json()  # type: ignore[no-any-return]

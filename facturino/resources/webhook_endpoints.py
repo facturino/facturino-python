@@ -46,6 +46,15 @@ class WebhookEndpoints:
     def delete(self, endpoint_id: str) -> None:
         self._client.delete(f"/v1/webhook-endpoints/{endpoint_id}")
 
+    def test(self, endpoint_id: str) -> dict[str, Any]:
+        """Send a test event to a webhook endpoint.
+
+        Returns:
+            The test delivery result dict.
+        """
+        resp = self._client.post(f"/v1/webhook-endpoints/{endpoint_id}/test")
+        return resp.json()  # type: ignore[no-any-return]
+
 
 class AsyncWebhookEndpoints:
     """Asynchronous webhook endpoints resource.
@@ -84,3 +93,12 @@ class AsyncWebhookEndpoints:
 
     async def delete(self, endpoint_id: str) -> None:
         await self._client.delete(f"/v1/webhook-endpoints/{endpoint_id}")
+
+    async def test(self, endpoint_id: str) -> dict[str, Any]:
+        """Send a test event to a webhook endpoint.
+
+        Returns:
+            The test delivery result dict.
+        """
+        resp = await self._client.post(f"/v1/webhook-endpoints/{endpoint_id}/test")
+        return resp.json()  # type: ignore[no-any-return]

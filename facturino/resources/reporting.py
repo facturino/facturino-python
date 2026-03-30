@@ -1,6 +1,6 @@
 """Reporting resource — /v1/reporting
 
-VAT and revenue reports by period (Essential+ plans).
+VAT and revenue reports by period (Essential, Pro ou Cabinet plans).
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ class Reporting:
         self._client = client
 
     def vat(self, *, period_start: str, period_end: str) -> dict[str, Any]:
-        """Get a VAT report for the given period (Essential+ plan required).
+        """Get a VAT report for the given period (Essential, Pro ou Cabinet plan required).
 
         Args:
             period_start: ISO 8601 date (e.g. "2026-01-01").
@@ -41,7 +41,7 @@ class Reporting:
         period_end: str,
         group_by: str | None = None,
     ) -> dict[str, Any]:
-        """Get a revenue report for the given period (Essential+ plan required).
+        """Get a revenue report for the given period (Essential, Pro ou Cabinet plan required).
 
         Args:
             period_start: ISO 8601 date (e.g. "2026-01-01").
@@ -67,14 +67,14 @@ class Reporting:
 class AsyncReporting:
     """Asynchronous reporting resource.
 
-    VAT and revenue reports by period (Essential+ plans).
+    VAT and revenue reports by period (Essential, Pro ou Cabinet plans).
     """
 
     def __init__(self, client: AsyncHttpClient) -> None:
         self._client = client
 
     async def vat(self, *, period_start: str, period_end: str) -> dict[str, Any]:
-        """Get a VAT report for the given period (Essential+ plan required).
+        """Get a VAT report for the given period (Essential, Pro ou Cabinet plan required).
 
         Args:
             period_start: ISO 8601 date (e.g. "2026-01-01").
@@ -98,7 +98,7 @@ class AsyncReporting:
         period_end: str,
         group_by: str | None = None,
     ) -> dict[str, Any]:
-        """Get a revenue report for the given period (Essential+ plan required).
+        """Get a revenue report for the given period (Essential, Pro ou Cabinet plan required).
 
         Args:
             period_start: ISO 8601 date (e.g. "2026-01-01").
