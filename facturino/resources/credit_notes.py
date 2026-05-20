@@ -11,6 +11,27 @@ from .._client import AsyncHttpClient, SyncHttpClient
 from .._pagination import AsyncPage, SyncPage
 
 
+def _email_body(params: dict[str, Any]) -> dict[str, Any]:
+    """Build the `/email` request body.
+
+    Accepts both snake_case (Pythonic) and camelCase (API-style) kwargs
+    so callers can stay idiomatic locally while the HTTP payload always
+    matches the Zod schema documented at ``/docs/credit-notes#email``.
+    """
+    body: dict[str, Any] = {}
+    for snake, camel in (
+        ("recipient_email", "recipientEmail"),
+        ("custom_message", "customMessage"),
+        ("include_xml", "includeXml"),
+        ("custom_subject", "customSubject"),
+    ):
+        if snake in params:
+            body[camel] = params[snake]
+        elif camel in params:
+            body[camel] = params[camel]
+    return body
+
+
 class CreditNotes:
     """Synchronous credit notes resource."""
 
@@ -64,6 +85,24 @@ class CreditNotes:
 
     def send(self, credit_note_id: str) -> dict[str, Any]:
         resp = self._client.post(f"/v1/credit-notes/{credit_note_id}/send")
+        return resp.json()  # type: ignore[no-any-return]
+
+    def email(self, credit_note_id: str, **params: Any) -> dict[str, Any]:
+        """Send the credit note by email with the PDF attached.
+
+        Returns ``{"status": "sent", ...}`` once dispatched, or
+        ``{"status": "pending", "jobId": …}`` when the PDF is still
+        being rendered (caller should poll the returned job).
+
+        Args:
+            recipient_email / recipientEmail: Override recipient address.
+            custom_message / customMessage: Personal message body.
+            include_xml / includeXml: When ``True``, also attach the XML CII.
+            custom_subject / customSubject: Override default subject line.
+        """
+        resp = self._client.post(
+            f"/v1/credit-notes/{credit_note_id}/email", json=_email_body(params)
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     def get_pdf(self, credit_note_id: str) -> Any:
@@ -139,6 +178,16 @@ class AsyncCreditNotes:
 
     async def send(self, credit_note_id: str) -> dict[str, Any]:
         resp = await self._client.post(f"/v1/credit-notes/{credit_note_id}/send")
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def email(self, credit_note_id: str, **params: Any) -> dict[str, Any]:
+        """Send the credit note by email with the PDF attached.
+
+        See :meth:`CreditNotes.email` for the parameter and return shape.
+        """
+        resp = await self._client.post(
+            f"/v1/credit-notes/{credit_note_id}/email", json=_email_body(params)
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     async def get_pdf(self, credit_note_id: str) -> Any:

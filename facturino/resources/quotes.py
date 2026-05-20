@@ -11,6 +11,29 @@ from .._client import AsyncHttpClient, SyncHttpClient
 from .._pagination import AsyncPage, SyncPage
 
 
+def _email_body(params: dict[str, Any]) -> dict[str, Any]:
+    """Build the `/email` request body.
+
+    Accepts both snake_case (Pythonic) and camelCase (API-style) kwargs
+    so callers can stay idiomatic locally while the HTTP payload always
+    matches the Zod schema documented at ``/docs/quotes#email``.
+    """
+    mapping = {
+        "recipient_email": "recipientEmail",
+        "recipientEmail": "recipientEmail",
+        "custom_message": "customMessage",
+        "customMessage": "customMessage",
+        "custom_subject": "customSubject",
+        "customSubject": "customSubject",
+    }
+    body: dict[str, Any] = {}
+    for key, value in params.items():
+        api_key = mapping.get(key)
+        if api_key is not None:
+            body[api_key] = value
+    return body
+
+
 class Quotes:
     """Synchronous quotes resource."""
 
@@ -55,6 +78,25 @@ class Quotes:
     def send(self, quote_id: str) -> dict[str, Any]:
         """Assigns a number on first send."""
         resp = self._client.post(f"/v1/quotes/{quote_id}/send")
+        return resp.json()  # type: ignore[no-any-return]
+
+    def email(self, quote_id: str, **params: Any) -> dict[str, Any]:
+        """Send the quote to its customer by email with the PDF attached.
+
+        Returns ``{"status": "sent", ...}`` once the email is dispatched,
+        or ``{"status": "pending", "jobId": "job_…", "pollUrl": "…",
+        "reason": "pdf_generating"}`` when the PDF is still being
+        rendered. In the latter case poll the job and call ``email``
+        again once it completes.
+
+        Args:
+            recipient_email / recipientEmail: Override the customer email.
+            custom_message / customMessage: Personal message body.
+            custom_subject / customSubject: Override the default subject.
+        """
+        resp = self._client.post(
+            f"/v1/quotes/{quote_id}/email", json=_email_body(params)
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     def accept(self, quote_id: str) -> dict[str, Any]:
@@ -131,6 +173,16 @@ class AsyncQuotes:
     async def send(self, quote_id: str) -> dict[str, Any]:
         """Assigns a number on first send."""
         resp = await self._client.post(f"/v1/quotes/{quote_id}/send")
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def email(self, quote_id: str, **params: Any) -> dict[str, Any]:
+        """Send the quote to its customer by email with the PDF attached.
+
+        See :meth:`Quotes.email` for the parameter and return shape.
+        """
+        resp = await self._client.post(
+            f"/v1/quotes/{quote_id}/email", json=_email_body(params)
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     async def accept(self, quote_id: str) -> dict[str, Any]:

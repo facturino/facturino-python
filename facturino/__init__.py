@@ -62,6 +62,7 @@ from ._errors import (
 )
 from ._pagination import AsyncPage, SyncPage
 from ._webhooks import Webhook
+from .resources.account import Account, AsyncAccount
 from .resources.api_keys import ApiKeys, AsyncApiKeys
 from .resources.companies import AsyncCompanies, Companies
 from .resources.credit_notes import AsyncCreditNotes, CreditNotes
@@ -142,6 +143,7 @@ class Client:
         )
 
         # Resource namespaces
+        self.account = Account(self._http)
         self.invoices = Invoices(self._http)
         self.payments = Payments(self._http)
         self.customers = Customers(self._http)
@@ -213,6 +215,7 @@ class AsyncClient:
         )
 
         # Resource namespaces
+        self.account = AsyncAccount(self._http)
         self.invoices = AsyncInvoices(self._http)
         self.payments = AsyncPayments(self._http)
         self.customers = AsyncCustomers(self._http)
