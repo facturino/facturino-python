@@ -64,6 +64,8 @@ from ._pagination import AsyncPage, SyncPage
 from ._webhooks import Webhook
 from .resources.account import Account, AsyncAccount
 from .resources.api_keys import ApiKeys, AsyncApiKeys
+from .resources.billing import AsyncBilling, Billing
+from .resources.cabinets import AsyncCabinets, Cabinets
 from .resources.companies import AsyncCompanies, Companies
 from .resources.credit_notes import AsyncCreditNotes, CreditNotes
 from .resources.customers import AsyncCustomers, Customers
@@ -74,13 +76,18 @@ from .resources.invoices import AsyncInvoices, Invoices
 from .resources.jobs import AsyncJobs, Jobs
 from .resources.members import AsyncMembers, Members
 from .resources.mfa import AsyncMfa, Mfa
+from .resources.notifications import AsyncNotifications, Notifications
 from .resources.payments import AsyncPayments, Payments
 from .resources.products import AsyncProducts, Products
 from .resources.quotes import AsyncQuotes, Quotes
 from .resources.received_invoices import AsyncReceivedInvoices, ReceivedInvoices
 from .resources.recurring_invoices import AsyncRecurringInvoices, RecurringInvoices
+from .resources.reference import AsyncReference, Reference
 from .resources.reporting import AsyncReporting, Reporting
 from .resources.sandbox import AsyncSandbox, Sandbox
+from .resources.settings import AsyncSettings, Settings
+from .resources.usage import AsyncUsage, Usage
+from .resources.validate import AsyncValidate, Validate
 from .resources.webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
 
 __version__ = VERSION
@@ -144,6 +151,8 @@ class Client:
 
         # Resource namespaces
         self.account = Account(self._http)
+        self.billing = Billing(self._http)
+        self.cabinets = Cabinets(self._http)
         self.invoices = Invoices(self._http)
         self.payments = Payments(self._http)
         self.customers = Customers(self._http)
@@ -162,7 +171,12 @@ class Client:
         self.reporting = Reporting(self._http)
         self.mfa = Mfa(self._http)
         self.jobs = Jobs(self._http)
+        self.notifications = Notifications(self._http)
+        self.reference = Reference(self._http)
         self.sandbox = Sandbox(self._http)
+        self.settings = Settings(self._http)
+        self.usage = Usage(self._http)
+        self.validate = Validate(self._http)
 
     def close(self) -> None:
         """Close the underlying HTTP client and release connections."""
@@ -216,6 +230,8 @@ class AsyncClient:
 
         # Resource namespaces
         self.account = AsyncAccount(self._http)
+        self.billing = AsyncBilling(self._http)
+        self.cabinets = AsyncCabinets(self._http)
         self.invoices = AsyncInvoices(self._http)
         self.payments = AsyncPayments(self._http)
         self.customers = AsyncCustomers(self._http)
@@ -234,7 +250,12 @@ class AsyncClient:
         self.reporting = AsyncReporting(self._http)
         self.mfa = AsyncMfa(self._http)
         self.jobs = AsyncJobs(self._http)
+        self.notifications = AsyncNotifications(self._http)
+        self.reference = AsyncReference(self._http)
         self.sandbox = AsyncSandbox(self._http)
+        self.settings = AsyncSettings(self._http)
+        self.usage = AsyncUsage(self._http)
+        self.validate = AsyncValidate(self._http)
 
     async def close(self) -> None:
         """Close the underlying HTTP client and release connections."""

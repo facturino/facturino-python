@@ -169,6 +169,18 @@ class Invoices:
         resp = self._client.post(f"/v1/invoices/{invoice_id}/payment-token")
         return resp.json()  # type: ignore[no-any-return]
 
+    def create_portal_link(self, invoice_id: str) -> dict[str, Any]:
+        """Generate a signed client-portal link for a finalized invoice.
+
+        The URL points to a public, branded portal where the customer
+        can view the invoice, download the PDF and trigger the payment
+        flow. The embedded token grants read-only access to a single
+        invoice and expires after the configured lifetime. Returns
+        ``invalid_status_transition`` if the invoice is still in draft.
+        """
+        resp = self._client.post(f"/v1/invoices/{invoice_id}/portal-link")
+        return resp.json()  # type: ignore[no-any-return]
+
     def create_incoming(self, **params: Any) -> dict[str, Any]:
         """Create an incoming invoice (received from a supplier).
 
@@ -340,6 +352,10 @@ class AsyncInvoices:
     async def create_payment_token(self, invoice_id: str) -> dict[str, Any]:
         """Pro+ only."""
         resp = await self._client.post(f"/v1/invoices/{invoice_id}/payment-token")
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def create_portal_link(self, invoice_id: str) -> dict[str, Any]:
+        resp = await self._client.post(f"/v1/invoices/{invoice_id}/portal-link")
         return resp.json()  # type: ignore[no-any-return]
 
     async def create_incoming(self, **params: Any) -> dict[str, Any]:

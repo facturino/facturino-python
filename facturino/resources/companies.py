@@ -20,12 +20,44 @@ class Companies:
         resp = self._client.get("/v1/companies")
         return resp.json()  # type: ignore[no-any-return]
 
+    def create(self, **params: Any) -> dict[str, Any]:
+        """Create a new company under the authenticated user.
+
+        Subject to the per-plan company quota (free / essential: 1,
+        pro: 3, cabinet_*: 50+); exceeding the quota returns a 402
+        ``plan_limit_error``.
+        """
+        resp = self._client.post("/v1/companies", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
     def get(self, company_id: str) -> dict[str, Any]:
         resp = self._client.get(f"/v1/companies/{company_id}")
         return resp.json()  # type: ignore[no-any-return]
 
     def update(self, company_id: str, **params: Any) -> dict[str, Any]:
         resp = self._client.patch(f"/v1/companies/{company_id}", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
+    def update_invoicing_settings(self, company_id: str, **params: Any) -> dict[str, Any]:
+        """Update the invoicing settings (numbering format, default
+        payment terms, default VAT rate, footer mentions…) and the
+        VAT regime for the company.
+        """
+        resp = self._client.patch(
+            f"/v1/companies/{company_id}/invoicing-settings", json=params
+        )
+        return resp.json()  # type: ignore[no-any-return]
+
+    def add_milestone(self, company_id: str, milestone: str) -> dict[str, Any]:
+        """Mark an onboarding milestone as reached.
+
+        Used by the dashboard to compute the onboarding progress and
+        surface remaining steps (e.g. ``first_invoice_sent``,
+        ``pa_connected``, ``bank_added``).
+        """
+        resp = self._client.post(
+            f"/v1/companies/{company_id}/milestones", json={"milestone": milestone}
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     def upload_cgv(self, company_id: str, content: str) -> dict[str, Any]:
@@ -98,12 +130,28 @@ class AsyncCompanies:
         resp = await self._client.get("/v1/companies")
         return resp.json()  # type: ignore[no-any-return]
 
+    async def create(self, **params: Any) -> dict[str, Any]:
+        resp = await self._client.post("/v1/companies", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
     async def get(self, company_id: str) -> dict[str, Any]:
         resp = await self._client.get(f"/v1/companies/{company_id}")
         return resp.json()  # type: ignore[no-any-return]
 
     async def update(self, company_id: str, **params: Any) -> dict[str, Any]:
         resp = await self._client.patch(f"/v1/companies/{company_id}", json=params)
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def update_invoicing_settings(self, company_id: str, **params: Any) -> dict[str, Any]:
+        resp = await self._client.patch(
+            f"/v1/companies/{company_id}/invoicing-settings", json=params
+        )
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def add_milestone(self, company_id: str, milestone: str) -> dict[str, Any]:
+        resp = await self._client.post(
+            f"/v1/companies/{company_id}/milestones", json={"milestone": milestone}
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     async def upload_cgv(self, company_id: str, content: str) -> dict[str, Any]:
