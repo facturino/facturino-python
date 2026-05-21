@@ -37,10 +37,6 @@ class Payments:
         resp = self._client.post(f"/v1/invoices/{invoice_id}/payments", json=body)
         return resp.json()  # type: ignore[no-any-return]
 
-    def get(self, invoice_id: str, payment_id: str) -> dict[str, Any]:
-        resp = self._client.get(f"/v1/invoices/{invoice_id}/payments/{payment_id}")
-        return resp.json()  # type: ignore[no-any-return]
-
     def list(self, invoice_id: str, **params: Any) -> SyncPage:
         resp = self._client.get(f"/v1/invoices/{invoice_id}/payments", params=params)
         # Build fetcher that binds invoice_id
@@ -72,10 +68,6 @@ class AsyncPayments:
         if "paid_at" in body and "paidAt" not in body:
             body["paidAt"] = body.pop("paid_at")
         resp = await self._client.post(f"/v1/invoices/{invoice_id}/payments", json=body)
-        return resp.json()  # type: ignore[no-any-return]
-
-    async def get(self, invoice_id: str, payment_id: str) -> dict[str, Any]:
-        resp = await self._client.get(f"/v1/invoices/{invoice_id}/payments/{payment_id}")
         return resp.json()  # type: ignore[no-any-return]
 
     async def list(self, invoice_id: str, **params: Any) -> AsyncPage:

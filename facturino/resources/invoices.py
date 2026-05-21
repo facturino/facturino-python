@@ -70,6 +70,32 @@ class Invoices:
         resp = self._client.post(f"/v1/invoices/{invoice_id}/finalize")
         return resp.json()  # type: ignore[no-any-return]
 
+    def email(self, invoice_id: str, **params: Any) -> dict[str, Any]:
+        """Send a finalized invoice to its customer by email with the PDF
+        attached.
+
+        Args:
+            recipient_email / recipientEmail: override the recipient.
+            custom_message / customMessage: optional body addition.
+            include_xml / includeXml: attach the CII XML alongside the PDF.
+            custom_subject / customSubject: override the email subject.
+
+        Returns either ``{"status": "sent", ...}`` or, when the PDF is
+        still being generated, ``{"status": "pending", "jobId": ...}`` —
+        callers should poll the job id to know when delivery completes.
+        """
+        body = dict(params)
+        for snake, camel in (
+            ("recipient_email", "recipientEmail"),
+            ("custom_message", "customMessage"),
+            ("include_xml", "includeXml"),
+            ("custom_subject", "customSubject"),
+        ):
+            if snake in body and camel not in body:
+                body[camel] = body.pop(snake)
+        resp = self._client.post(f"/v1/invoices/{invoice_id}/email", json=body)
+        return resp.json()  # type: ignore[no-any-return]
+
     def send(self, invoice_id: str) -> dict[str, Any]:
         """Send a finalized invoice to the PA (e-invoicing platform).
 
@@ -253,6 +279,19 @@ class AsyncInvoices:
     async def finalize(self, invoice_id: str) -> dict[str, Any]:
         """Assign number, lock for editing, generate legal mentions."""
         resp = await self._client.post(f"/v1/invoices/{invoice_id}/finalize")
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def email(self, invoice_id: str, **params: Any) -> dict[str, Any]:
+        body = dict(params)
+        for snake, camel in (
+            ("recipient_email", "recipientEmail"),
+            ("custom_message", "customMessage"),
+            ("include_xml", "includeXml"),
+            ("custom_subject", "customSubject"),
+        ):
+            if snake in body and camel not in body:
+                body[camel] = body.pop(snake)
+        resp = await self._client.post(f"/v1/invoices/{invoice_id}/email", json=body)
         return resp.json()  # type: ignore[no-any-return]
 
     async def send(self, invoice_id: str) -> dict[str, Any]:
