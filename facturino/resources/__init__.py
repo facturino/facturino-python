@@ -8,6 +8,7 @@ from .customers import AsyncCustomers, Customers
 from .ereporting import AsyncEreporting, Ereporting
 from .events import AsyncEvents, Events
 from .exports import AsyncExports, Exports
+from .health import AsyncHealth, Health
 from .invoices import AsyncInvoices, Invoices
 from .jobs import AsyncJobs, Jobs
 from .members import AsyncMembers, Members
@@ -38,6 +39,8 @@ __all__ = [
     "AsyncEvents",
     "Exports",
     "AsyncExports",
+    "Health",
+    "AsyncHealth",
     "Invoices",
     "AsyncInvoices",
     "Jobs",

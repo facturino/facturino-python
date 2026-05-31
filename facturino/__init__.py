@@ -64,6 +64,7 @@ from ._pagination import AsyncPage, SyncPage
 from ._webhooks import Webhook
 from .resources.account import Account, AsyncAccount
 from .resources.api_keys import ApiKeys, AsyncApiKeys
+from .resources.archives import Archives, AsyncArchives
 from .resources.billing import AsyncBilling, Billing
 from .resources.cabinets import AsyncCabinets, Cabinets
 from .resources.companies import AsyncCompanies, Companies
@@ -72,6 +73,7 @@ from .resources.customers import AsyncCustomers, Customers
 from .resources.ereporting import AsyncEreporting, Ereporting
 from .resources.events import AsyncEvents, Events
 from .resources.exports import AsyncExports, Exports
+from .resources.health import AsyncHealth, Health
 from .resources.invoices import AsyncInvoices, Invoices
 from .resources.jobs import AsyncJobs, Jobs
 from .resources.members import AsyncMembers, Members
@@ -166,6 +168,7 @@ class Client:
         self.companies = Companies(self._http)
         self.members = Members(self._http)
         self.api_keys = ApiKeys(self._http)
+        self.archives = Archives(self._http)
         self.exports = Exports(self._http)
         self.ereporting = Ereporting(self._http)
         self.reporting = Reporting(self._http)
@@ -177,6 +180,7 @@ class Client:
         self.settings = Settings(self._http)
         self.usage = Usage(self._http)
         self.validate = Validate(self._http)
+        self.health = Health(self._http)
 
     def close(self) -> None:
         """Close the underlying HTTP client and release connections."""
@@ -245,6 +249,7 @@ class AsyncClient:
         self.companies = AsyncCompanies(self._http)
         self.members = AsyncMembers(self._http)
         self.api_keys = AsyncApiKeys(self._http)
+        self.archives = AsyncArchives(self._http)
         self.exports = AsyncExports(self._http)
         self.ereporting = AsyncEreporting(self._http)
         self.reporting = AsyncReporting(self._http)
@@ -256,6 +261,7 @@ class AsyncClient:
         self.settings = AsyncSettings(self._http)
         self.usage = AsyncUsage(self._http)
         self.validate = AsyncValidate(self._http)
+        self.health = AsyncHealth(self._http)
 
     async def close(self) -> None:
         """Close the underlying HTTP client and release connections."""

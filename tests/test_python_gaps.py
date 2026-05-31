@@ -103,3 +103,28 @@ async def test_async_invoices_email() -> None:
 def test_async_payments_phantom_get_is_gone() -> None:
     async_client = facturino.AsyncClient("fac_test_abc")
     assert not hasattr(async_client.payments, "get")
+
+
+@respx.mock
+def test_archives_namespace_is_wired() -> None:
+    """The ``archives`` resource is exported and must be reachable on the client."""
+    respx.get(f"{BASE}/v1/archives/inv_x").mock(
+        return_value=httpx.Response(200, json={"id": "inv_x", "archive": {"hash": "abc"}})
+    )
+
+    client = facturino.Client("fac_test_abc")
+    assert hasattr(client, "archives")
+    assert client.archives.get("inv_x")["archive"]["hash"] == "abc"
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_async_archives_namespace_is_wired() -> None:
+    respx.get(f"{BASE}/v1/archives/inv_x").mock(
+        return_value=httpx.Response(200, json={"id": "inv_x", "archive": {"hash": "abc"}})
+    )
+
+    async with facturino.AsyncClient("fac_test_abc") as client:
+        assert hasattr(client, "archives")
+        entry = await client.archives.get("inv_x")
+    assert entry["archive"]["hash"] == "abc"

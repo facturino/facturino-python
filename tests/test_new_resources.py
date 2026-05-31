@@ -39,18 +39,23 @@ def test_billing_retrieve_subscription() -> None:
 
 
 @respx.mock
-def test_billing_update_subscription_maps_snake_to_camel() -> None:
-    """``cancel_at_period_end`` must be sent as ``cancelAtPeriodEnd``."""
+def test_billing_update_subscription_sends_plan_and_annual() -> None:
+    """``plan`` -> ``planId`` and ``cycle`` -> ``annual`` on the strict wire."""
     route = respx.patch(f"{BASE}/v1/billing/subscription").mock(
         return_value=httpx.Response(200, json={"object": "subscription"})
     )
 
     client = facturino.Client("fac_test_abc")
-    client.billing.update_subscription(cancel_at_period_end=True)
+    client.billing.update_subscription(plan="pro", cycle="annual")
 
     assert route.called
     sent_body = route.calls.last.request.read().decode()
-    assert "cancelAtPeriodEnd" in sent_body
+    assert '"planId":"pro"' in sent_body.replace(" ", "")
+    assert '"annual":true' in sent_body.replace(" ", "")
+    # The backend schema is strict: no plan/cycle/cancelAtPeriodEnd on the wire.
+    assert '"plan":' not in sent_body
+    assert "cycle" not in sent_body
+    assert "cancelAtPeriodEnd" not in sent_body
     assert "cancel_at_period_end" not in sent_body
 
 
@@ -69,8 +74,12 @@ def test_billing_checkout_maps_urls_to_camel() -> None:
     )
 
     body = route.calls.last.request.read().decode()
+    assert '"planId":"pro"' in body.replace(" ", "")
     assert "successUrl" in body and "cancelUrl" in body
     assert "success_url" not in body and "cancel_url" not in body
+    # checkout is strict: plan/cycle are not accepted by the backend.
+    assert '"plan":' not in body
+    assert "cycle" not in body
 
 
 @respx.mock
@@ -89,7 +98,7 @@ def test_billing_portal_maps_return_url() -> None:
 
 @respx.mock
 def test_billing_pause_and_resume() -> None:
-    respx.post(f"{BASE}/v1/billing/pause").mock(
+    pause_route = respx.post(f"{BASE}/v1/billing/pause").mock(
         return_value=httpx.Response(200, json={"status": "paused"})
     )
     respx.post(f"{BASE}/v1/billing/resume").mock(
@@ -97,8 +106,11 @@ def test_billing_pause_and_resume() -> None:
     )
 
     client = facturino.Client("fac_test_abc")
-    assert client.billing.pause()["status"] == "paused"
+    assert client.billing.pause(months=2)["status"] == "paused"
     assert client.billing.resume()["status"] == "active"
+
+    body = pause_route.calls.last.request.read().decode()
+    assert '"months":2' in body.replace(" ", "")
 
 
 @respx.mock
@@ -222,6 +234,34 @@ def test_usage_retrieve() -> None:
     snap = client.usage.retrieve()
     assert snap["plan"] == "pro"
     assert snap["invoicesIssued"]["used"] == 12
+
+
+# ─── health ───────────────────────────────────────────────────────────
+
+
+@respx.mock
+def test_health_check() -> None:
+    route = respx.get(f"{BASE}/v1/health").mock(
+        return_value=httpx.Response(200, json={"status": "ok", "apiVersion": "2026-03-01"})
+    )
+
+    client = facturino.Client("fac_test_abc")
+    result = client.health.check()
+
+    assert result["status"] == "ok"
+    assert route.called
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_async_health_check() -> None:
+    respx.get(f"{BASE}/v1/health").mock(
+        return_value=httpx.Response(200, json={"status": "ok"})
+    )
+
+    async with facturino.AsyncClient("fac_test_abc") as client:
+        result = await client.health.check()
+    assert result["status"] == "ok"
 
 
 # ─── validate ─────────────────────────────────────────────────────────
