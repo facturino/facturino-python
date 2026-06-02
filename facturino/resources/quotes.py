@@ -112,6 +112,13 @@ class Quotes:
         resp = self._client.post(f"/v1/quotes/{quote_id}/convert")
         return resp.json()  # type: ignore[no-any-return]
 
+    def clone(self, quote_id: str) -> dict[str, Any]:
+        """Duplicate a quote. Returns the new draft quote (status ``draft``,
+        no number assigned), regardless of the source quote's status.
+        """
+        resp = self._client.post(f"/v1/quotes/{quote_id}/clone")
+        return resp.json()  # type: ignore[no-any-return]
+
     def get_pdf(self, quote_id: str) -> Any:
         """Returns raw PDF bytes or a JSON dict depending on Content-Type."""
         resp = self._client.get(f"/v1/quotes/{quote_id}/pdf")
@@ -196,6 +203,13 @@ class AsyncQuotes:
     async def convert(self, quote_id: str) -> dict[str, Any]:
         """Convert an accepted quote to a draft invoice. Returns the new invoice."""
         resp = await self._client.post(f"/v1/quotes/{quote_id}/convert")
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def clone(self, quote_id: str) -> dict[str, Any]:
+        """Duplicate a quote. Returns the new draft quote (status ``draft``,
+        no number assigned), regardless of the source quote's status.
+        """
+        resp = await self._client.post(f"/v1/quotes/{quote_id}/clone")
         return resp.json()  # type: ignore[no-any-return]
 
     async def get_pdf(self, quote_id: str) -> Any:

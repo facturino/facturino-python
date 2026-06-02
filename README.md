@@ -73,6 +73,52 @@ print(page.data)       # list of items on this page
 print(page.has_more)   # whether more items exist
 ```
 
+## Filtering and Expanding
+
+List and retrieve calls forward keyword arguments straight through as query
+parameters, so any filter the API supports is available without an SDK change:
+
+```python
+# Invoices converted from a given quote
+for inv in client.invoices.list(convertedFrom="quo_abc123"):
+    print(inv["id"])
+
+# Inline a retrieved invoice's credit notes and net balance
+invoice = client.invoices.get("inv_abc123", expand="credit_notes")
+print(invoice["expanded"]["net_balance"])
+for cn in invoice["expanded"]["credit_notes"]:
+    print(cn["id"])
+# expand accepts a comma-separated list: "customer,items.product,credit_notes"
+
+# Product catalogue filters
+results = client.products.list(q="cons", category="services", active=True)
+```
+
+Customer contacts accept a `role` (`billing`, `technical` or `main`); the
+`billing` contact receives invoices by default:
+
+```python
+client.customers.create(
+    name="ACME Corp",
+    type="company",
+    contacts=[
+        {"name": "Finance", "email": "ap@acme.com", "role": "billing"},
+        {"name": "Ops", "email": "ops@acme.com", "role": "technical"},
+    ],
+)
+```
+
+Credit note numbering is controlled per company via
+`creditNoteSettings.numberingMode` — `separate` (default) gives credit notes
+their own series, `unified` shares the invoice series:
+
+```python
+client.companies.update(
+    "comp_abc123",
+    creditNoteSettings={"numberingMode": "unified"},
+)
+```
+
 ## Async Support
 
 An async client is available for use with `asyncio`:
@@ -102,7 +148,7 @@ asyncio.run(main())
 | `client.payments` | `create(invoice_id, ...)`, `get(invoice_id, payment_id)`, `list(invoice_id)` |
 | `client.customers` | `create`, `list`, `get`, `update`, `delete`, `lookup`, `import_csv`, `export_csv` |
 | `client.products` | `create`, `list`, `get`, `update`, `delete`, `import_csv`, `export_csv` |
-| `client.quotes` | `create`, `list`, `get`, `update`, `delete`, `send`, `accept`, `refuse`, `convert`, `get_pdf` |
+| `client.quotes` | `create`, `list`, `get`, `update`, `delete`, `send`, `accept`, `refuse`, `convert`, `clone`, `get_pdf` |
 | `client.credit_notes` | `create`, `list`, `get`, `update`, `delete`, `finalize`, `send`, `get_pdf` |
 | `client.events` | `list`, `get`, `retry` |
 | `client.webhook_endpoints` | `create`, `list`, `get`, `update`, `delete` |

@@ -27,6 +27,9 @@ class Customers:
             siret: 14-digit SIRET (B2B France).
             vat_number / vatNumber: EU VAT number.
             address: Address dict (line1, postalCode, city, country).
+            contacts: List of contact dicts. Each may carry a ``role`` among
+                ``billing``, ``technical`` and ``main``; the ``billing``
+                contact receives invoices by default.
             **params: Additional fields.
 
         Returns:
@@ -47,6 +50,12 @@ class Customers:
         return resp.json()  # type: ignore[no-any-return]
 
     def update(self, customer_id: str, **params: Any) -> dict[str, Any]:
+        """Update a customer.
+
+        Entries in ``contacts`` accept a ``role`` among ``billing``,
+        ``technical`` and ``main``; the ``billing`` contact receives
+        invoices by default.
+        """
         resp = self._client.patch(f"/v1/customers/{customer_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
@@ -104,6 +113,9 @@ class AsyncCustomers:
             siret: 14-digit SIRET (B2B France).
             vat_number / vatNumber: EU VAT number.
             address: Address dict (line1, postalCode, city, country).
+            contacts: List of contact dicts. Each may carry a ``role`` among
+                ``billing``, ``technical`` and ``main``; the ``billing``
+                contact receives invoices by default.
             **params: Additional fields.
         """
         body = dict(params)
@@ -121,6 +133,12 @@ class AsyncCustomers:
         return resp.json()  # type: ignore[no-any-return]
 
     async def update(self, customer_id: str, **params: Any) -> dict[str, Any]:
+        """Update a customer.
+
+        Entries in ``contacts`` accept a ``role`` among ``billing``,
+        ``technical`` and ``main``; the ``billing`` contact receives
+        invoices by default.
+        """
         resp = await self._client.patch(f"/v1/customers/{customer_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 

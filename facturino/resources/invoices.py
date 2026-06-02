@@ -47,11 +47,32 @@ class Invoices:
         return resp.json()  # type: ignore[no-any-return]
 
     def list(self, **params: Any) -> SyncPage:
+        """List invoices.
+
+        Args:
+            status: Filter by lifecycle status.
+            customerId: Filter by customer ID.
+            convertedFrom: Filter by source quote ID (a ``quo_…`` string);
+                returns only the invoices converted from that quote.
+            limit / starting_after / ending_before: Pagination controls.
+            **params: Any other supported query filter.
+        """
         resp = self._client.get("/v1/invoices", params=params)
         return SyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
-    def get(self, invoice_id: str) -> dict[str, Any]:
-        resp = self._client.get(f"/v1/invoices/{invoice_id}")
+    def get(self, invoice_id: str, **params: Any) -> dict[str, Any]:
+        """Retrieve an invoice.
+
+        Args:
+            invoice_id: Invoice ID.
+            expand: Comma-separated relations to inline, among
+                ``customer``, ``items.product`` and ``credit_notes``. With
+                ``expand="credit_notes"`` the response carries an
+                ``expanded.credit_notes`` array and an ``expanded.net_balance``
+                string (TTC minus issued credit notes).
+            **params: Any other supported query parameter.
+        """
+        resp = self._client.get(f"/v1/invoices/{invoice_id}", params=params)
         return resp.json()  # type: ignore[no-any-return]
 
     def update(self, invoice_id: str, **params: Any) -> dict[str, Any]:
@@ -258,11 +279,32 @@ class AsyncInvoices:
         return resp.json()  # type: ignore[no-any-return]
 
     async def list(self, **params: Any) -> AsyncPage:
+        """List invoices.
+
+        Args:
+            status: Filter by lifecycle status.
+            customerId: Filter by customer ID.
+            convertedFrom: Filter by source quote ID (a ``quo_…`` string);
+                returns only the invoices converted from that quote.
+            limit / starting_after / ending_before: Pagination controls.
+            **params: Any other supported query filter.
+        """
         resp = await self._client.get("/v1/invoices", params=params)
         return AsyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
-    async def get(self, invoice_id: str) -> dict[str, Any]:
-        resp = await self._client.get(f"/v1/invoices/{invoice_id}")
+    async def get(self, invoice_id: str, **params: Any) -> dict[str, Any]:
+        """Retrieve an invoice.
+
+        Args:
+            invoice_id: Invoice ID.
+            expand: Comma-separated relations to inline, among
+                ``customer``, ``items.product`` and ``credit_notes``. With
+                ``expand="credit_notes"`` the response carries an
+                ``expanded.credit_notes`` array and an ``expanded.net_balance``
+                string (TTC minus issued credit notes).
+            **params: Any other supported query parameter.
+        """
+        resp = await self._client.get(f"/v1/invoices/{invoice_id}", params=params)
         return resp.json()  # type: ignore[no-any-return]
 
     async def update(self, invoice_id: str, **params: Any) -> dict[str, Any]:

@@ -35,6 +35,12 @@ class Companies:
         return resp.json()  # type: ignore[no-any-return]
 
     def update(self, company_id: str, **params: Any) -> dict[str, Any]:
+        """Update a company.
+
+        ``creditNoteSettings.numberingMode`` accepts ``separate`` (default,
+        credit notes use their own number series) or ``unified`` (credit
+        notes share the invoice number series).
+        """
         resp = self._client.patch(f"/v1/companies/{company_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
@@ -87,7 +93,16 @@ class Companies:
         return resp.json()  # type: ignore[no-any-return]
 
     def test_pa_connection(self, company_id: str) -> dict[str, Any]:
-        """Test the PA connection (health check + credential validation)."""
+        """Test the PA connection: checks network reachability + credentials via
+        a directory lookup of the company SIRET.
+
+        Returns a dict with ``healthy``, ``latencyMs``, ``details``,
+        ``provider``, ``testedAt`` and, when ``healthy`` is False, an
+        ``errorCode``: ``pa_credentials_invalid`` (fix credentials),
+        ``pa_unreachable`` (PA/network outage), ``pa_not_supported`` (the PA has
+        no directory lookup -- a capability gap, not a misconfiguration) or
+        ``pa_error``.
+        """
         resp = self._client.post(f"/v1/companies/{company_id}/pa-connection/test", json={})
         return resp.json()  # type: ignore[no-any-return]
 
@@ -139,6 +154,12 @@ class AsyncCompanies:
         return resp.json()  # type: ignore[no-any-return]
 
     async def update(self, company_id: str, **params: Any) -> dict[str, Any]:
+        """Update a company.
+
+        ``creditNoteSettings.numberingMode`` accepts ``separate`` (default,
+        credit notes use their own number series) or ``unified`` (credit
+        notes share the invoice number series).
+        """
         resp = await self._client.patch(f"/v1/companies/{company_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
@@ -181,7 +202,16 @@ class AsyncCompanies:
         return resp.json()  # type: ignore[no-any-return]
 
     async def test_pa_connection(self, company_id: str) -> dict[str, Any]:
-        """Test the PA connection (health check + credential validation)."""
+        """Test the PA connection: checks network reachability + credentials via
+        a directory lookup of the company SIRET.
+
+        Returns a dict with ``healthy``, ``latencyMs``, ``details``,
+        ``provider``, ``testedAt`` and, when ``healthy`` is False, an
+        ``errorCode``: ``pa_credentials_invalid`` (fix credentials),
+        ``pa_unreachable`` (PA/network outage), ``pa_not_supported`` (the PA has
+        no directory lookup -- a capability gap, not a misconfiguration) or
+        ``pa_error``.
+        """
         resp = await self._client.post(f"/v1/companies/{company_id}/pa-connection/test", json={})
         return resp.json()  # type: ignore[no-any-return]
 

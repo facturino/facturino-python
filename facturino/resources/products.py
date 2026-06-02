@@ -39,6 +39,15 @@ class Products:
         return resp.json()  # type: ignore[no-any-return]
 
     def list(self, **params: Any) -> SyncPage:
+        """List products.
+
+        Args:
+            q: Filter by name prefix.
+            category: Filter by category.
+            active: Filter by active flag (bool).
+            limit / starting_after / ending_before: Pagination controls.
+            **params: Any other supported query filter.
+        """
         resp = self._client.get("/v1/products", params=params)
         return SyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
@@ -100,6 +109,15 @@ class AsyncProducts:
         return resp.json()  # type: ignore[no-any-return]
 
     async def list(self, **params: Any) -> AsyncPage:
+        """List products.
+
+        Args:
+            q: Filter by name prefix.
+            category: Filter by category.
+            active: Filter by active flag (bool).
+            limit / starting_after / ending_before: Pagination controls.
+            **params: Any other supported query filter.
+        """
         resp = await self._client.get("/v1/products", params=params)
         return AsyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
