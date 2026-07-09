@@ -24,7 +24,7 @@ class Usage:
 
         Includes plan limits and the consumption so far for each metered
         dimension; no historical data — the dashboard uses
-        ``GET /v1/exports/revenue`` for trend lines.
+        ``GET /v1/reporting/revenue`` for trend lines.
         """
         resp = self._client.get("/v1/usage")
         return resp.json()  # type: ignore[no-any-return]

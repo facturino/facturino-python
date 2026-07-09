@@ -1,10 +1,9 @@
 """Validate resource — /v1/validate
 
-Synchronous structural validation of business identifiers (SIRET, VAT
-number, IBAN, BIC) and document payloads (invoice line items against
-EN16931 / CIUS-FR Schematron rules). Useful client-side to surface
-errors before hitting the write endpoints — Validate calls never mutate
-any resource.
+Dry-run conformity check of an invoice draft against the same EN16931 /
+CIUS-FR rules as ``invoices.create``, without persisting anything. Use it to
+surface conformity warnings before creating an invoice. To check a customer's
+SIRET/VAT, use ``customers.lookup`` (SIRENE/VIES).
 """
 
 from __future__ import annotations
@@ -21,14 +20,11 @@ class Validate:
         self._client = client
 
     def run(self, **params: Any) -> dict[str, Any]:
-        """Run a single validation request.
+        """Validate an invoice payload without creating it.
 
-        The shape depends on ``kind``:
-
-        - ``"siret"`` / ``"vat"`` / ``"iban"`` / ``"bic"``: accept a
-          ``value`` string.
-        - ``"invoice"``: accepts a full invoice payload and runs
-          Schematron against EN16931 + CIUS-FR.
+        Accepts the same fields as ``invoices.create`` (``customer_id``,
+        ``buyer``, ``lines``, ``dates``, ``payment``...). Returns
+        ``{"valid": bool, "warnings": [...], "schemaVersion": str}``.
         """
         resp = self._client.post("/v1/validate", json=params)
         return resp.json()  # type: ignore[no-any-return]
@@ -41,5 +37,10 @@ class AsyncValidate:
         self._client = client
 
     async def run(self, **params: Any) -> dict[str, Any]:
+        """Validate an invoice payload without creating it.
+
+        Accepts the same fields as ``invoices.create``. Returns
+        ``{"valid": bool, "warnings": [...], "schemaVersion": str}``.
+        """
         resp = await self._client.post("/v1/validate", json=params)
         return resp.json()  # type: ignore[no-any-return]

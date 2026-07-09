@@ -18,7 +18,6 @@ import respx
 
 import facturino
 
-
 BASE = "https://facturino.com/api"
 
 

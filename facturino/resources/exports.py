@@ -39,19 +39,25 @@ class Exports:
         resp = self._client.get(f"/v1/exports/fec/{job_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    def export_rgpd(self) -> dict[str, Any]:
-        """Request a full RGPD data export. Returns a job object (202 Accepted)."""
-        resp = self._client.post("/v1/exports/full")
-        return resp.json()  # type: ignore[no-any-return]
-
     def get_status(self, job_id: str) -> dict[str, Any]:
         """Returns download_url when completed."""
         resp = self._client.get(f"/v1/exports/{job_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    def export_invoices(self) -> dict[str, Any]:
-        """Bulk export all finalized invoices as ZIP (Factur-X PDF + CII XML). All plans."""
-        resp = self._client.post("/v1/exports/invoices")
+    def export_invoices(self, **params: Any) -> dict[str, Any]:
+        """Bulk export finalized invoices as ZIP (Factur-X PDF + CII XML). All plans.
+
+        With no params, every non-draft invoice is exported.
+
+        Args:
+            period_start: Filter on issue date >= this date (YYYY-MM-DD).
+            period_end: Filter on issue date <= this date (YYYY-MM-DD).
+            statuses: List of lifecycle statuses to include (e.g. ["paid", "sent"]).
+
+        Returns:
+            Job object (202 Accepted) with job ID for polling.
+        """
+        resp = self._client.post("/v1/exports/invoices", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
 
@@ -84,17 +90,20 @@ class AsyncExports:
         resp = await self._client.get(f"/v1/exports/fec/{job_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    async def export_rgpd(self) -> dict[str, Any]:
-        """Request a full RGPD data export. Returns a job object (202 Accepted)."""
-        resp = await self._client.post("/v1/exports/full")
-        return resp.json()  # type: ignore[no-any-return]
-
     async def get_status(self, job_id: str) -> dict[str, Any]:
         """Returns download_url when completed."""
         resp = await self._client.get(f"/v1/exports/{job_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    async def export_invoices(self) -> dict[str, Any]:
-        """Bulk export all finalized invoices as ZIP (Factur-X PDF + CII XML). All plans."""
-        resp = await self._client.post("/v1/exports/invoices")
+    async def export_invoices(self, **params: Any) -> dict[str, Any]:
+        """Bulk export finalized invoices as ZIP (Factur-X PDF + CII XML). All plans.
+
+        With no params, every non-draft invoice is exported.
+
+        Args:
+            period_start: Filter on issue date >= this date (YYYY-MM-DD).
+            period_end: Filter on issue date <= this date (YYYY-MM-DD).
+            statuses: List of lifecycle statuses to include (e.g. ["paid", "sent"]).
+        """
+        resp = await self._client.post("/v1/exports/invoices", json=params)
         return resp.json()  # type: ignore[no-any-return]

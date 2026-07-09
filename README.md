@@ -32,12 +32,21 @@ customer = client.customers.create(
 # Create a draft invoice
 invoice = client.invoices.create(
     customer=customer["id"],
+    buyer={
+        "companyName": "Acme SAS",
+        "siret": "55208131766522",
+        "address": {"line1": "10 rue de la Paix", "postalCode": "75002", "city": "Paris", "country": "FR"},
+    },
     items=[{
         "description": "Consulting services",
-        "quantity": 1,
-        "unit_price": 10000,   # 100.00 EUR (integer centimes)
-        "vat_rate": 2000,      # 20.00% (integer centipercent)
+        "quantity": "1",           # decimal string
+        "unit": "flat_rate",
+        "unitPrice": 10000,        # 100.00 EUR (integer centimes)
+        "vatRate": 2000,           # 20.00% (integer centipercent)
+        "vatCode": "S",
     }],
+    dates={"issued": "2026-07-01", "due": "2026-07-31"},
+    payment={"terms": "Paiement à 30 jours", "termsDays": 30, "method": "transfer", "latePaymentRate": "10.00", "collectionFee": "40.00"},
 )
 
 # Finalize the invoice (assigns number, locks editing)
@@ -46,6 +55,10 @@ print(f"Invoice {finalized['number']} finalized")
 
 # Send to the e-invoicing platform (PA)
 client.invoices.send(finalized["id"])
+
+# One-shot alternative — finalize (and optionally deliver) in the create call:
+#   client.invoices.create(..., autoFinalize=True,
+#                          autoSend={"email": True, "pa": True})
 ```
 
 ## Amount Conventions
@@ -54,9 +67,9 @@ All monetary amounts are expressed as **integers in centimes** (1 EUR = 100):
 
 | Value | Integer | Meaning |
 |-------|---------|---------|
-| 100.00 EUR | `10000` | unit_price |
-| 20.00% | `2000` | vat_rate (centipercent) |
-| 5.50% | `550` | vat_rate (centipercent) |
+| 100.00 EUR | `10000` | unitPrice |
+| 20.00% | `2000` | vatRate (centipercent) |
+| 5.50% | `550` | vatRate (centipercent) |
 
 ## Auto-Pagination
 
@@ -131,7 +144,11 @@ async def main():
     async with facturino.AsyncClient("fac_test_xxx") as client:
         invoice = await client.invoices.create(
             customer="cus_xxx",
-            items=[{"description": "Widget", "quantity": 2, "unit_price": 5000, "vat_rate": 2000}],
+            buyer={"companyName": "Acme SAS", "siret": "55208131766522",
+                   "address": {"line1": "10 rue de la Paix", "postalCode": "75002", "city": "Paris", "country": "FR"}},
+            items=[{"description": "Widget", "quantity": "2", "unit": "unit", "unitPrice": 5000, "vatRate": 2000, "vatCode": "S"}],
+            dates={"issued": "2026-07-01", "due": "2026-07-31"},
+            payment={"terms": "30 jours", "termsDays": 30, "method": "transfer", "latePaymentRate": "10.00", "collectionFee": "40.00"},
         )
 
         async for inv in await client.invoices.list():
@@ -145,18 +162,16 @@ asyncio.run(main())
 | Resource | Methods |
 |----------|---------|
 | `client.invoices` | `create`, `list`, `get`, `update`, `delete`, `finalize`, `send`, `cancel`, `remind`, `clone`, `get_pdf`, `get_facturx`, `get_xml`, `get_status`, `verify`, `list_events`, `get_audit_trail`, `generate_audit_trail_pdf`, `create_payment_link`, `create_payment_token` |
-| `client.payments` | `create(invoice_id, ...)`, `get(invoice_id, payment_id)`, `list(invoice_id)` |
+| `client.payments` | `create(invoice_id, ...)`, `list(invoice_id)` |
 | `client.customers` | `create`, `list`, `get`, `update`, `delete`, `lookup`, `import_csv`, `export_csv` |
 | `client.products` | `create`, `list`, `get`, `update`, `delete`, `import_csv`, `export_csv` |
 | `client.quotes` | `create`, `list`, `get`, `update`, `delete`, `send`, `accept`, `refuse`, `convert`, `clone`, `get_pdf` |
-| `client.credit_notes` | `create`, `list`, `get`, `update`, `delete`, `finalize`, `send`, `get_pdf` |
+| `client.credit_notes` | `create`, `list`, `get`, `update`, `delete`, `finalize`, `send`, `email`, `get_pdf`, `get_facturx`, `get_xml` |
 | `client.events` | `list`, `get`, `retry` |
 | `client.webhook_endpoints` | `create`, `list`, `get`, `update`, `delete` |
-| `client.recurring_invoices` | `create`, `list`, `get`, `update`, `delete`, `activate`, `deactivate` |
-| `client.companies` | `list`, `get`, `update`, `upload_cgv`, `get_cgv`, `delete_cgv` |
-| `client.members` | `list`, `get`, `invite`, `update_role`, `revoke` |
-| `client.api_keys` | `create`, `list`, `get`, `revoke`, `roll` |
-| `client.exports` | `generate_fec`, `get_fec_status`, `export_rgpd`, `get_status` |
+| `client.recurring_invoices` | `create`, `list`, `get`, `update`, `delete`, `pause`, `resume` |
+| `client.companies` | `list`, `create`, `get`, `update`, `add_milestone`, `upload_cgv`, `get_cgv`, `delete_cgv` |
+| `client.exports` | `generate_fec`, `get_fec_status`, `export_invoices`, `get_status` |
 | `client.ereporting` | `list`, `get`, `create_declaration`, `submit_declaration` |
 | `client.jobs` | `get` |
 | `client.sandbox` | `reset_data`, `simulate_status`, `create_fixtures` |

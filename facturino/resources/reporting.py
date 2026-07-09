@@ -24,8 +24,8 @@ class Reporting:
             period_end: ISO 8601 date (e.g. "2026-03-31").
 
         Returns:
-            Dict with ``object: "vat_report"``, ``period``, ``vat_breakdown``,
-            ``total_ht``, ``total_vat``, ``total_ttc``, ``invoice_count``.
+            Dict with ``object: "vat_report"``, ``period``, ``vatBreakdown``,
+            ``totalHT``, ``totalVAT``, ``totalTTC``, ``invoiceCount``.
             Amounts are in integer centimes.
         """
         resp = self._client.get(
@@ -81,8 +81,8 @@ class AsyncReporting:
             period_end: ISO 8601 date (e.g. "2026-03-31").
 
         Returns:
-            Dict with ``object: "vat_report"``, ``period``, ``vat_breakdown``,
-            ``total_ht``, ``total_vat``, ``total_ttc``, ``invoice_count``.
+            Dict with ``object: "vat_report"``, ``period``, ``vatBreakdown``,
+            ``totalHT``, ``totalVAT``, ``totalTTC``, ``invoiceCount``.
             Amounts are in integer centimes.
         """
         resp = await self._client.get(

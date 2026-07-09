@@ -121,6 +121,19 @@ class CreditNotes:
         resp = self._client.get(f"/v1/credit-notes/{credit_note_id}/facturx")
         return resp.json()  # type: ignore[no-any-return]
 
+    def get_xml(self, credit_note_id: str, *, format: str = "cii") -> Any:
+        """Get the CII or UBL XML for a credit note.
+
+        Args:
+            credit_note_id: Credit note ID.
+            format: "cii" (default) or "ubl".
+
+        Returns:
+            XML string (Content-Type: application/xml).
+        """
+        resp = self._client.get(f"/v1/credit-notes/{credit_note_id}/xml", params={"format": format})
+        return resp.text
+
 
 class AsyncCreditNotes:
     """Asynchronous credit notes resource.
@@ -205,3 +218,16 @@ class AsyncCreditNotes:
         """
         resp = await self._client.get(f"/v1/credit-notes/{credit_note_id}/facturx")
         return resp.json()  # type: ignore[no-any-return]
+
+    async def get_xml(self, credit_note_id: str, *, format: str = "cii") -> Any:
+        """Get the CII or UBL XML for a credit note.
+
+        Args:
+            credit_note_id: Credit note ID.
+            format: "cii" (default) or "ubl".
+
+        Returns:
+            XML string (Content-Type: application/xml).
+        """
+        resp = await self._client.get(f"/v1/credit-notes/{credit_note_id}/xml", params={"format": format})
+        return resp.text

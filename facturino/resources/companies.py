@@ -1,6 +1,7 @@
 """Companies resource — /v1/companies
 
-Get, update, CGV upload, Stripe Connect management.
+List, create, get, update, manage CGV (terms and conditions) and
+onboarding milestones.
 """
 
 from __future__ import annotations
@@ -44,16 +45,6 @@ class Companies:
         resp = self._client.patch(f"/v1/companies/{company_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
-    def update_invoicing_settings(self, company_id: str, **params: Any) -> dict[str, Any]:
-        """Update the invoicing settings (numbering format, default
-        payment terms, default VAT rate, footer mentions…) and the
-        VAT regime for the company.
-        """
-        resp = self._client.patch(
-            f"/v1/companies/{company_id}/invoicing-settings", json=params
-        )
-        return resp.json()  # type: ignore[no-any-return]
-
     def add_milestone(self, company_id: str, milestone: str) -> dict[str, Any]:
         """Mark an onboarding milestone as reached.
 
@@ -80,63 +71,9 @@ class Companies:
         resp = self._client.delete(f"/v1/companies/{company_id}/cgv")
         return resp.json()  # type: ignore[no-any-return]
 
-    # --- PA Connection (BYOPA) ---
-
-    def connect_pa(self, company_id: str, **params: Any) -> dict[str, Any]:
-        """Connect a PA — the client provides their own PA account credentials."""
-        resp = self._client.post(f"/v1/companies/{company_id}/pa-connection", json=params)
-        return resp.json()  # type: ignore[no-any-return]
-
-    def disconnect_pa(self, company_id: str) -> dict[str, Any]:
-        """Disconnect the PA from a company."""
-        resp = self._client.delete(f"/v1/companies/{company_id}/pa-connection")
-        return resp.json()  # type: ignore[no-any-return]
-
-    def test_pa_connection(self, company_id: str) -> dict[str, Any]:
-        """Test the PA connection: checks network reachability + credentials via
-        a directory lookup of the company SIRET.
-
-        Returns a dict with ``healthy``, ``latencyMs``, ``details``,
-        ``provider``, ``testedAt`` and, when ``healthy`` is False, an
-        ``errorCode``: ``pa_credentials_invalid`` (fix credentials),
-        ``pa_unreachable`` (PA/network outage), ``pa_not_supported`` (the PA has
-        no directory lookup -- a capability gap, not a misconfiguration) or
-        ``pa_error``.
-        """
-        resp = self._client.post(f"/v1/companies/{company_id}/pa-connection/test", json={})
-        return resp.json()  # type: ignore[no-any-return]
-
-    # --- Stripe Connect ---
-
-    def connect_stripe(self, **params: Any) -> dict[str, Any]:
-        """Initiate Stripe Connect onboarding.
-
-        Returns:
-            A dict with the Stripe Connect account link URL.
-        """
-        resp = self._client.post("/v1/companies/stripe-connect", json=params)
-        return resp.json()  # type: ignore[no-any-return]
-
-    def get_stripe_dashboard(self) -> dict[str, Any]:
-        """Get a Stripe Express dashboard login link.
-
-        Returns:
-            A dict with the Stripe dashboard URL.
-        """
-        resp = self._client.get("/v1/companies/stripe-dashboard")
-        return resp.json()  # type: ignore[no-any-return]
-
-    def disconnect_stripe(self) -> dict[str, Any]:
-        """Disconnect the Stripe Connect account."""
-        resp = self._client.delete("/v1/companies/stripe-connect")
-        return resp.json()  # type: ignore[no-any-return]
-
 
 class AsyncCompanies:
-    """Asynchronous companies resource.
-
-    Get, update, CGV upload, Stripe Connect management.
-    """
+    """Asynchronous companies resource."""
 
     def __init__(self, client: AsyncHttpClient) -> None:
         self._client = client
@@ -163,12 +100,6 @@ class AsyncCompanies:
         resp = await self._client.patch(f"/v1/companies/{company_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
-    async def update_invoicing_settings(self, company_id: str, **params: Any) -> dict[str, Any]:
-        resp = await self._client.patch(
-            f"/v1/companies/{company_id}/invoicing-settings", json=params
-        )
-        return resp.json()  # type: ignore[no-any-return]
-
     async def add_milestone(self, company_id: str, milestone: str) -> dict[str, Any]:
         resp = await self._client.post(
             f"/v1/companies/{company_id}/milestones", json={"milestone": milestone}
@@ -187,55 +118,4 @@ class AsyncCompanies:
 
     async def delete_cgv(self, company_id: str) -> dict[str, Any]:
         resp = await self._client.delete(f"/v1/companies/{company_id}/cgv")
-        return resp.json()  # type: ignore[no-any-return]
-
-    # --- PA Connection (BYOPA) ---
-
-    async def connect_pa(self, company_id: str, **params: Any) -> dict[str, Any]:
-        """Connect a PA — the client provides their own PA account credentials."""
-        resp = await self._client.post(f"/v1/companies/{company_id}/pa-connection", json=params)
-        return resp.json()  # type: ignore[no-any-return]
-
-    async def disconnect_pa(self, company_id: str) -> dict[str, Any]:
-        """Disconnect the PA from a company."""
-        resp = await self._client.delete(f"/v1/companies/{company_id}/pa-connection")
-        return resp.json()  # type: ignore[no-any-return]
-
-    async def test_pa_connection(self, company_id: str) -> dict[str, Any]:
-        """Test the PA connection: checks network reachability + credentials via
-        a directory lookup of the company SIRET.
-
-        Returns a dict with ``healthy``, ``latencyMs``, ``details``,
-        ``provider``, ``testedAt`` and, when ``healthy`` is False, an
-        ``errorCode``: ``pa_credentials_invalid`` (fix credentials),
-        ``pa_unreachable`` (PA/network outage), ``pa_not_supported`` (the PA has
-        no directory lookup -- a capability gap, not a misconfiguration) or
-        ``pa_error``.
-        """
-        resp = await self._client.post(f"/v1/companies/{company_id}/pa-connection/test", json={})
-        return resp.json()  # type: ignore[no-any-return]
-
-    # --- Stripe Connect ---
-
-    async def connect_stripe(self, **params: Any) -> dict[str, Any]:
-        """Initiate Stripe Connect onboarding.
-
-        Returns:
-            A dict with the Stripe Connect account link URL.
-        """
-        resp = await self._client.post("/v1/companies/stripe-connect", json=params)
-        return resp.json()  # type: ignore[no-any-return]
-
-    async def get_stripe_dashboard(self) -> dict[str, Any]:
-        """Get a Stripe Express dashboard login link.
-
-        Returns:
-            A dict with the Stripe dashboard URL.
-        """
-        resp = await self._client.get("/v1/companies/stripe-dashboard")
-        return resp.json()  # type: ignore[no-any-return]
-
-    async def disconnect_stripe(self) -> dict[str, Any]:
-        """Disconnect the Stripe Connect account."""
-        resp = await self._client.delete("/v1/companies/stripe-connect")
         return resp.json()  # type: ignore[no-any-return]

@@ -72,10 +72,10 @@ class Products:
         resp = self._client.post("/v1/products/import", json={"csv": csv_string})
         return resp.json()  # type: ignore[no-any-return]
 
-    def export_csv(self) -> dict[str, Any]:
-        """Export products as CSV. Returns a job object (202 Accepted)."""
+    def export_csv(self) -> str:
+        """Export the product catalog as raw CSV (Content-Type text/csv)."""
         resp = self._client.get("/v1/products/export")
-        return resp.json()  # type: ignore[no-any-return]
+        return resp.text
 
 
 class AsyncProducts:
@@ -142,7 +142,7 @@ class AsyncProducts:
         resp = await self._client.post("/v1/products/import", json={"csv": csv_string})
         return resp.json()  # type: ignore[no-any-return]
 
-    async def export_csv(self) -> dict[str, Any]:
-        """Export products as CSV. Returns a job object (202 Accepted)."""
+    async def export_csv(self) -> str:
+        """Export the product catalog as raw CSV (Content-Type text/csv)."""
         resp = await self._client.get("/v1/products/export")
-        return resp.json()  # type: ignore[no-any-return]
+        return resp.text

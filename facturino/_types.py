@@ -120,6 +120,24 @@ class PaymentCreateParams(TypedDict, total=False):
 # Customers
 # ---------------------------------------------------------------------------
 
+class LegalFormInput(TypedDict, total=False):
+    """Legal-form input for company/customer create/update.
+
+    Provide either the 4-digit INSEE ``code`` or the ``sigle`` (e.g. "SAS");
+    the API resolves the canonical object. Do not send ``label`` — the input
+    is strictly validated and unknown keys are rejected.
+    """
+
+    code: str
+    sigle: str
+
+
+class NafInput(TypedDict, total=False):
+    """NAF (APE) input. Provide the Rev. 2 ``code`` (e.g. "62.01Z" or "6201Z")."""
+
+    code: str
+
+
 class CustomerCreateParams(TypedDict, total=False):
     name: str
     type: str
@@ -128,8 +146,8 @@ class CustomerCreateParams(TypedDict, total=False):
     siren: str
     vatNumber: str
     vat_number: str
-    legalForm: str
-    nafCode: str
+    legalForm: LegalFormInput
+    naf: NafInput
     address: Address
     deliveryAddress: Address
     contacts: list[dict[str, Any]]
@@ -144,6 +162,8 @@ class CustomerCreateParams(TypedDict, total=False):
 class CustomerUpdateParams(TypedDict, total=False):
     name: str
     email: str
+    legalForm: LegalFormInput
+    naf: NafInput
     address: Address
     deliveryAddress: Address
     contacts: list[dict[str, Any]]
@@ -287,30 +307,6 @@ class RecurringInvoiceUpdateParams(TypedDict, total=False):
 
 
 # ---------------------------------------------------------------------------
-# API Keys
-# ---------------------------------------------------------------------------
-
-class ApiKeyCreateParams(TypedDict, total=False):
-    name: str
-    permissions: list[str]
-
-
-# ---------------------------------------------------------------------------
-# Members
-# ---------------------------------------------------------------------------
-
-class MemberInviteParams(TypedDict, total=False):
-    email: str
-    role: str
-    displayName: str
-    display_name: str
-
-
-class MemberUpdateParams(TypedDict, total=False):
-    role: str
-
-
-# ---------------------------------------------------------------------------
 # Exports
 # ---------------------------------------------------------------------------
 
@@ -319,6 +315,12 @@ class FecExportParams(TypedDict, total=False):
     period_end: str
     send_to_accountant: bool
     accountant_email: str
+
+
+class InvoiceExportParams(TypedDict, total=False):
+    period_start: str
+    period_end: str
+    statuses: list[str]
 
 
 # ---------------------------------------------------------------------------

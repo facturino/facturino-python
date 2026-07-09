@@ -29,7 +29,7 @@ class Ereporting:
         """Create a new e-reporting declaration.
 
         Args:
-            type: Declaration type (b2c, international, intra_eu).
+            type: Declaration type (b2c, international, intra_eu, payment).
             period: Period string (e.g. "2026-01").
             lines: List of reporting lines with category, amount, vatRate, vatAmount
                    (all in integer centimes / centipercent).
@@ -73,7 +73,7 @@ class AsyncEreporting:
         """Create a new e-reporting declaration.
 
         Args:
-            type: Declaration type (b2c, international, intra_eu).
+            type: Declaration type (b2c, international, intra_eu, payment).
             period: Period string (e.g. "2026-01").
             lines: List of reporting lines with category, amount, vatRate, vatAmount
                    (all in integer centimes / centipercent).

@@ -1,8 +1,7 @@
 """Tests for the methods backfilled to reach actual 100% API coverage:
 
-- Account: schedule_deletion, cancel_deletion, request_export,
-  download_export, update_notifications
-- Companies: create, update_invoicing_settings, add_milestone
+- Account: request_export, download_export
+- Companies: create, add_milestone
 - Invoices: create_portal_link
 """
 
@@ -14,42 +13,10 @@ import respx
 
 import facturino
 
-
 BASE = "https://facturino.com/api"
 
 
-# ─── account — RGPD lifecycle ─────────────────────────────────────────
-
-
-@respx.mock
-def test_account_schedule_deletion() -> None:
-    respx.post(f"{BASE}/v1/account/schedule-deletion").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "object": "account_deletion",
-                "deletionScheduledAt": "2026-06-19T00:00:00.000Z",
-                "message": "Account scheduled for deletion in 30 days.",
-            },
-        )
-    )
-
-    client = facturino.Client("fac_test_abc")
-    result = client.account.schedule_deletion()
-    assert result["deletionScheduledAt"].startswith("2026-")
-
-
-@respx.mock
-def test_account_cancel_deletion() -> None:
-    respx.post(f"{BASE}/v1/account/cancel-deletion").mock(
-        return_value=httpx.Response(
-            200, json={"object": "account_deletion", "deletionScheduledAt": None}
-        )
-    )
-
-    client = facturino.Client("fac_test_abc")
-    result = client.account.cancel_deletion()
-    assert result["deletionScheduledAt"] is None
+# ─── account — RGPD export ────────────────────────────────────────────
 
 
 @respx.mock
@@ -79,20 +46,6 @@ def test_account_request_and_download_export() -> None:
     assert download["url"].startswith("https://")
 
 
-@respx.mock
-def test_account_update_notifications() -> None:
-    route = respx.patch(f"{BASE}/v1/account/notifications").mock(
-        return_value=httpx.Response(200, json={"invoicePaid": False, "productNews": True})
-    )
-
-    client = facturino.Client("fac_test_abc")
-    result = client.account.update_notifications(invoicePaid=False, productNews=True)
-
-    assert result["invoicePaid"] is False
-    body = route.calls.last.request.read().decode()
-    assert "invoicePaid" in body and "false" in body.lower()
-
-
 # ─── companies — backfilled methods ───────────────────────────────────
 
 
@@ -118,19 +71,6 @@ def test_companies_create_under_plan_quota() -> None:
     assert result["id"] == "comp_new"
     body = route.calls.last.request.read().decode()
     assert "44306184100047" in body
-
-
-@respx.mock
-def test_companies_update_invoicing_settings() -> None:
-    route = respx.patch(f"{BASE}/v1/companies/comp_x/invoicing-settings").mock(
-        return_value=httpx.Response(200, json={"id": "comp_x", "vatRegime": "franchise"})
-    )
-
-    client = facturino.Client("fac_test_abc")
-    result = client.companies.update_invoicing_settings("comp_x", vatRegime="franchise")
-
-    assert result["vatRegime"] == "franchise"
-    assert route.calls.last.request.method == "PATCH"
 
 
 @respx.mock
@@ -176,24 +116,6 @@ def test_invoices_create_portal_link() -> None:
 
 
 # ─── async parity ─────────────────────────────────────────────────────
-
-
-@respx.mock
-@pytest.mark.asyncio
-async def test_async_account_schedule_deletion() -> None:
-    respx.post(f"{BASE}/v1/account/schedule-deletion").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "object": "account_deletion",
-                "deletionScheduledAt": "2026-06-19T00:00:00.000Z",
-                "message": "Scheduled.",
-            },
-        )
-    )
-    async with facturino.AsyncClient("fac_test_abc") as client:
-        result = await client.account.schedule_deletion()
-    assert result["deletionScheduledAt"].startswith("2026-")
 
 
 @respx.mock

@@ -229,13 +229,16 @@ class Invoices:
         return resp.json()  # type: ignore[no-any-return]
 
     def create_incoming(self, **params: Any) -> dict[str, Any]:
-        """Create an incoming invoice (received from a supplier).
+        """Record a supplier invoice received outside the platform.
 
         Args:
-            **params: Incoming invoice fields.
+            senderName: Supplier name (required).
+            senderSiret: Supplier SIRET, 14 digits (required).
+            amount: Total incl. VAT, in integer cents (required).
+            reference: Supplier invoice number / reference (required).
 
         Returns:
-            The created incoming invoice dict.
+            The recorded received-invoice dict (``rec_`` id).
         """
         resp = self._client.post("/v1/invoices/incoming", json=params)
         return resp.json()  # type: ignore[no-any-return]
@@ -440,13 +443,16 @@ class AsyncInvoices:
         return resp.json()  # type: ignore[no-any-return]
 
     async def create_incoming(self, **params: Any) -> dict[str, Any]:
-        """Create an incoming invoice (received from a supplier).
+        """Record a supplier invoice received outside the platform.
 
         Args:
-            **params: Incoming invoice fields.
+            senderName: Supplier name (required).
+            senderSiret: Supplier SIRET, 14 digits (required).
+            amount: Total incl. VAT, in integer cents (required).
+            reference: Supplier invoice number / reference (required).
 
         Returns:
-            The created incoming invoice dict.
+            The recorded received-invoice dict (``rec_`` id).
         """
         resp = await self._client.post("/v1/invoices/incoming", json=params)
         return resp.json()  # type: ignore[no-any-return]

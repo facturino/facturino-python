@@ -40,8 +40,6 @@ class TestClientInit:
         assert hasattr(client, "webhook_endpoints")
         assert hasattr(client, "recurring_invoices")
         assert hasattr(client, "companies")
-        assert hasattr(client, "members")
-        assert hasattr(client, "api_keys")
         assert hasattr(client, "exports")
         assert hasattr(client, "ereporting")
         assert hasattr(client, "jobs")

@@ -17,6 +17,7 @@ from ._errors import ApiError, FacturinoError
 
 # SDK metadata
 VERSION = "1.0.0"
+API_VERSION = "2026-03-01"
 DEFAULT_BASE_URL = "https://facturino.com/api"
 DEFAULT_TIMEOUT = 30.0
 MAX_RETRIES = 3
@@ -31,6 +32,7 @@ def _build_headers(api_key: str) -> dict[str, str]:
         "Content-Type": "application/json",
         "Accept": "application/json",
         "User-Agent": f"facturino-python/{VERSION}",
+        "Facturino-Version": API_VERSION,
     }
 
 
@@ -56,7 +58,7 @@ def _get_retry_delay(attempt: int, response: httpx.Response | None = None) -> fl
                 pass
 
     delay = INITIAL_RETRY_DELAY * (2 ** attempt)
-    return min(delay, MAX_RETRY_DELAY)
+    return min(float(delay), MAX_RETRY_DELAY)
 
 
 class SyncHttpClient:
@@ -102,6 +104,14 @@ class SyncHttpClient:
         extra_headers: dict[str, str] = {}
         if headers:
             extra_headers.update(headers)
+
+        # A caller may pass idempotency_key as a body field (resource methods
+        # forward **params straight to the JSON body). Lift it into the header
+        # so it controls idempotency instead of being rejected as an unknown
+        # body field by the strict API schema.
+        if idempotency_key is None and isinstance(json, dict) and "idempotency_key" in json:
+            json = dict(json)
+            idempotency_key = json.pop("idempotency_key")
 
         # Auto-generate idempotency key for POST requests
         if method.upper() == "POST" and idempotency_key is None:
@@ -206,6 +216,11 @@ class AsyncHttpClient:
         extra_headers: dict[str, str] = {}
         if headers:
             extra_headers.update(headers)
+
+        # Lift a body-level idempotency_key into the header (see sync request()).
+        if idempotency_key is None and isinstance(json, dict) and "idempotency_key" in json:
+            json = dict(json)
+            idempotency_key = json.pop("idempotency_key")
 
         if method.upper() == "POST" and idempotency_key is None:
             idempotency_key = str(uuid.uuid4())

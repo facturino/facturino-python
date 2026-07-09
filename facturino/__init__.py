@@ -17,12 +17,19 @@ Usage::
     # Create and finalize an invoice
     invoice = client.invoices.create(
         customer=customer["id"],
+        buyer={"companyName": "Acme SAS", "siret": "55208131766522",
+               "address": {"line1": "10 rue de la Paix", "postalCode": "75002", "city": "Paris", "country": "FR"}},
         items=[{
             "description": "Consulting",
-            "quantity": 1,
-            "unit_price": 10000,
-            "vat_rate": 2000,
+            "quantity": "1",
+            "unit": "flat_rate",
+            "unitPrice": 10000,
+            "vatRate": 2000,
+            "vatCode": "S",
         }],
+        dates={"issued": "2026-07-01", "due": "2026-07-31"},
+        payment={"terms": "Paiement à 30 jours", "termsDays": 30, "method": "transfer",
+                 "latePaymentRate": "10.00", "collectionFee": "40.00"},
     )
     finalized = client.invoices.finalize(invoice["id"])
 
@@ -63,10 +70,8 @@ from ._errors import (
 from ._pagination import AsyncPage, SyncPage
 from ._webhooks import Webhook
 from .resources.account import Account, AsyncAccount
-from .resources.api_keys import ApiKeys, AsyncApiKeys
 from .resources.archives import Archives, AsyncArchives
 from .resources.billing import AsyncBilling, Billing
-from .resources.cabinets import AsyncCabinets, Cabinets
 from .resources.companies import AsyncCompanies, Companies
 from .resources.credit_notes import AsyncCreditNotes, CreditNotes
 from .resources.customers import AsyncCustomers, Customers
@@ -76,9 +81,6 @@ from .resources.exports import AsyncExports, Exports
 from .resources.health import AsyncHealth, Health
 from .resources.invoices import AsyncInvoices, Invoices
 from .resources.jobs import AsyncJobs, Jobs
-from .resources.members import AsyncMembers, Members
-from .resources.mfa import AsyncMfa, Mfa
-from .resources.notifications import AsyncNotifications, Notifications
 from .resources.payments import AsyncPayments, Payments
 from .resources.products import AsyncProducts, Products
 from .resources.quotes import AsyncQuotes, Quotes
@@ -87,7 +89,6 @@ from .resources.recurring_invoices import AsyncRecurringInvoices, RecurringInvoi
 from .resources.reference import AsyncReference, Reference
 from .resources.reporting import AsyncReporting, Reporting
 from .resources.sandbox import AsyncSandbox, Sandbox
-from .resources.settings import AsyncSettings, Settings
 from .resources.usage import AsyncUsage, Usage
 from .resources.validate import AsyncValidate, Validate
 from .resources.webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
@@ -154,7 +155,6 @@ class Client:
         # Resource namespaces
         self.account = Account(self._http)
         self.billing = Billing(self._http)
-        self.cabinets = Cabinets(self._http)
         self.invoices = Invoices(self._http)
         self.payments = Payments(self._http)
         self.customers = Customers(self._http)
@@ -166,18 +166,13 @@ class Client:
         self.recurring_invoices = RecurringInvoices(self._http)
         self.received_invoices = ReceivedInvoices(self._http)
         self.companies = Companies(self._http)
-        self.members = Members(self._http)
-        self.api_keys = ApiKeys(self._http)
         self.archives = Archives(self._http)
         self.exports = Exports(self._http)
         self.ereporting = Ereporting(self._http)
         self.reporting = Reporting(self._http)
-        self.mfa = Mfa(self._http)
         self.jobs = Jobs(self._http)
-        self.notifications = Notifications(self._http)
         self.reference = Reference(self._http)
         self.sandbox = Sandbox(self._http)
-        self.settings = Settings(self._http)
         self.usage = Usage(self._http)
         self.validate = Validate(self._http)
         self.health = Health(self._http)
@@ -235,7 +230,6 @@ class AsyncClient:
         # Resource namespaces
         self.account = AsyncAccount(self._http)
         self.billing = AsyncBilling(self._http)
-        self.cabinets = AsyncCabinets(self._http)
         self.invoices = AsyncInvoices(self._http)
         self.payments = AsyncPayments(self._http)
         self.customers = AsyncCustomers(self._http)
@@ -247,18 +241,13 @@ class AsyncClient:
         self.recurring_invoices = AsyncRecurringInvoices(self._http)
         self.received_invoices = AsyncReceivedInvoices(self._http)
         self.companies = AsyncCompanies(self._http)
-        self.members = AsyncMembers(self._http)
-        self.api_keys = AsyncApiKeys(self._http)
         self.archives = AsyncArchives(self._http)
         self.exports = AsyncExports(self._http)
         self.ereporting = AsyncEreporting(self._http)
         self.reporting = AsyncReporting(self._http)
-        self.mfa = AsyncMfa(self._http)
         self.jobs = AsyncJobs(self._http)
-        self.notifications = AsyncNotifications(self._http)
         self.reference = AsyncReference(self._http)
         self.sandbox = AsyncSandbox(self._http)
-        self.settings = AsyncSettings(self._http)
         self.usage = AsyncUsage(self._http)
         self.validate = AsyncValidate(self._http)
         self.health = AsyncHealth(self._http)
