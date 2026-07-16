@@ -175,6 +175,13 @@ asyncio.run(main())
 | `client.ereporting` | `list`, `get`, `create_declaration`, `submit_declaration` |
 | `client.jobs` | `get` |
 | `client.sandbox` | `reset_data`, `simulate_status`, `create_fixtures` |
+| `client.reference` | `list_legal_forms`, `list_naf_codes`, `list_pa_providers` |
+| `client.health` | `check` |
+
+> **Public token endpoints** — the recipient-facing portals (`/pay/:token`,
+> `/portal/:token`, `/quote-portal/:token`) are intentionally not exposed by the
+> SDK: they are opened by the end recipient through a hosted page, not called
+> with an API key.
 
 ## Recording Payments
 

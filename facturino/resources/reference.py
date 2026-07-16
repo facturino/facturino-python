@@ -49,6 +49,16 @@ class Reference:
             resp.json(), fetcher=self.list_naf_codes, original_params=params
         )
 
+    def list_pa_providers(self) -> dict[str, Any]:
+        """List the supported Plateformes Agréées (PA).
+
+        Public catalogue — no filter; fetch once and cache. Use it to render a
+        provider picker and the credential fields each PA requires (Facturino is
+        BYOPA: the customer brings their own PA credentials at connect time).
+        """
+        resp = self._client.get("/v1/pa-providers")
+        return resp.json()  # type: ignore[no-any-return]
+
 
 class AsyncReference:
     """Asynchronous reference resource."""
@@ -67,3 +77,8 @@ class AsyncReference:
         return AsyncPage.from_response(
             resp.json(), fetcher=self.list_naf_codes, original_params=params
         )
+
+    async def list_pa_providers(self) -> dict[str, Any]:
+        """List the supported Plateformes Agréées (PA) — public catalogue."""
+        resp = await self._client.get("/v1/pa-providers")
+        return resp.json()  # type: ignore[no-any-return]
