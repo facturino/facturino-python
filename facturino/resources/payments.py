@@ -44,6 +44,18 @@ class Payments:
             return self.list(invoice_id, **p)
         return SyncPage.from_response(resp.json(), fetcher=fetcher, original_params=params)
 
+    def cancel(self, invoice_id: str, payment_id: str) -> dict[str, Any]:
+        """Cancel a recorded payment.
+
+        The payment is kept for the audit trail (status ``cancelled``) and the
+        invoice is re-settled from the reversal. Rejected once the payment has
+        been reported to the tax authority.
+        """
+        resp = self._client.post(
+            f"/v1/invoices/{invoice_id}/payments/{payment_id}/cancel"
+        )
+        return resp.json()  # type: ignore[no-any-return]
+
 
 class AsyncPayments:
     """Asynchronous payments resource (sub-resource of invoices).
@@ -75,3 +87,15 @@ class AsyncPayments:
         async def fetcher(**p: Any) -> AsyncPage:
             return await self.list(invoice_id, **p)
         return AsyncPage.from_response(resp.json(), fetcher=fetcher, original_params=params)
+
+    async def cancel(self, invoice_id: str, payment_id: str) -> dict[str, Any]:
+        """Cancel a recorded payment.
+
+        The payment is kept for the audit trail (status ``cancelled``) and the
+        invoice is re-settled from the reversal. Rejected once the payment has
+        been reported to the tax authority.
+        """
+        resp = await self._client.post(
+            f"/v1/invoices/{invoice_id}/payments/{payment_id}/cancel"
+        )
+        return resp.json()  # type: ignore[no-any-return]

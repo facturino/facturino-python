@@ -39,6 +39,10 @@ class LineItem(TypedDict, total=False):
     quantity: int
     unit_price: int
     vat_rate: int
+    vatCode: str
+    # Optional specific VATEX exemption code (BT-121), e.g. "VATEX-FR-261",
+    # when the exemption basis differs from the VAT category default.
+    vatexCode: str
     discount_percent: int
     unit: str
 

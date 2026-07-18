@@ -26,7 +26,8 @@ customer = client.customers.create(
     name="ACME Corp",
     type="company",
     email="billing@acme.com",
-    siret="12345678901234",
+    siret="73282932000074",
+    address={"line1": "10 rue de la Paix", "postalCode": "75002", "city": "Paris", "country": "FR"},
 )
 
 # Create a draft invoice

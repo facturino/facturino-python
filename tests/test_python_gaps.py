@@ -30,6 +30,29 @@ def test_payments_phantom_get_is_gone() -> None:
 
 
 @respx.mock
+def test_payments_cancel_posts_to_cancel_endpoint() -> None:
+    route = respx.post(f"{BASE}/v1/invoices/inv_x/payments/pay_x/cancel").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "pay_x",
+                "object": "payment",
+                "status": "cancelled",
+                "invoiceStatus": "partially_paid",
+                "amountDue": 5000,
+            },
+        )
+    )
+
+    client = facturino.Client("fac_test_abc")
+    result = client.payments.cancel("inv_x", "pay_x")
+
+    assert result["status"] == "cancelled"
+    assert result["amountDue"] == 5000
+    assert route.called
+
+
+@respx.mock
 def test_invoices_email_sends_camel_case_body() -> None:
     route = respx.post(f"{BASE}/v1/invoices/inv_x/email").mock(
         return_value=httpx.Response(
