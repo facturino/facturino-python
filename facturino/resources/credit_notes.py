@@ -105,6 +105,31 @@ class CreditNotes:
         )
         return resp.json()  # type: ignore[no-any-return]
 
+    def refund(self, credit_note_id: str, **params: Any) -> dict[str, Any]:
+        """Record the disbursement of a finalized credit note back to the customer.
+
+        Writes a negative ``refund`` payment on the linked invoice.
+
+        Args:
+            amount: Amount in integer centimes (defaults to the full credit-note total).
+            method: Payment method (transfer, card, check, cash, direct_debit, sepa).
+            refunded_at / refundedAt: ISO date of the disbursement.
+
+        Returns:
+            ``{"object": "refund", "id": …, "creditNoteId": …, "invoiceId": …, "amount": …}``.
+        """
+        body: dict[str, Any] = {}
+        if "amount" in params:
+            body["amount"] = params["amount"]
+        if "method" in params:
+            body["method"] = params["method"]
+        if "refunded_at" in params:
+            body["refundedAt"] = params["refunded_at"]
+        elif "refundedAt" in params:
+            body["refundedAt"] = params["refundedAt"]
+        resp = self._client.post(f"/v1/credit-notes/{credit_note_id}/refund", json=body)
+        return resp.json()  # type: ignore[no-any-return]
+
     def get_pdf(self, credit_note_id: str) -> Any:
         """Returns raw PDF bytes or a JSON dict depending on Content-Type."""
         resp = self._client.get(f"/v1/credit-notes/{credit_note_id}/pdf")
@@ -201,6 +226,23 @@ class AsyncCreditNotes:
         resp = await self._client.post(
             f"/v1/credit-notes/{credit_note_id}/email", json=_email_body(params)
         )
+        return resp.json()  # type: ignore[no-any-return]
+
+    async def refund(self, credit_note_id: str, **params: Any) -> dict[str, Any]:
+        """Record the disbursement of a finalized credit note back to the customer.
+
+        See :meth:`CreditNotes.refund` for the parameter and return shape.
+        """
+        body: dict[str, Any] = {}
+        if "amount" in params:
+            body["amount"] = params["amount"]
+        if "method" in params:
+            body["method"] = params["method"]
+        if "refunded_at" in params:
+            body["refundedAt"] = params["refunded_at"]
+        elif "refundedAt" in params:
+            body["refundedAt"] = params["refundedAt"]
+        resp = await self._client.post(f"/v1/credit-notes/{credit_note_id}/refund", json=body)
         return resp.json()  # type: ignore[no-any-return]
 
     async def get_pdf(self, credit_note_id: str) -> Any:

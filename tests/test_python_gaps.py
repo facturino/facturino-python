@@ -53,6 +53,32 @@ def test_payments_cancel_posts_to_cancel_endpoint() -> None:
 
 
 @respx.mock
+def test_credit_notes_refund_posts_to_refund_endpoint() -> None:
+    route = respx.post(f"{BASE}/v1/credit-notes/crn_1/refund").mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": "ref_1",
+                "object": "refund",
+                "creditNoteId": "crn_1",
+                "invoiceId": "inv_1",
+                "amount": 12000,
+            },
+        )
+    )
+
+    client = facturino.Client("fac_test_abc")
+    result = client.credit_notes.refund("crn_1", amount=12000, method="transfer", refunded_at="2026-05-14")
+
+    assert result["object"] == "refund"
+    assert result["amount"] == 12000
+    # Snake-case refunded_at is serialised to camelCase refundedAt in the body.
+    body = route.calls.last.request.content.decode()
+    assert "refundedAt" in body
+    assert route.called
+
+
+@respx.mock
 def test_invoices_email_sends_camel_case_body() -> None:
     route = respx.post(f"{BASE}/v1/invoices/inv_x/email").mock(
         return_value=httpx.Response(
