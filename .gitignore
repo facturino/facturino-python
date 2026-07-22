@@ -19,6 +19,9 @@ env/
 .coverage
 htmlcov/
 
+# uv lockfile (library — not pinned in VCS)
+uv.lock
+
 # IDE
 .idea/
 .vscode/
