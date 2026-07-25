@@ -45,7 +45,7 @@ class Products:
             q: Filter by name prefix.
             category: Filter by category.
             active: Filter by active flag (bool).
-            limit / starting_after / ending_before: Pagination controls.
+            limit / starting_after: Pagination controls.
             **params: Any other supported query filter.
         """
         resp = self._client.get("/v1/products", params=params)
@@ -115,7 +115,7 @@ class AsyncProducts:
             q: Filter by name prefix.
             category: Filter by category.
             active: Filter by active flag (bool).
-            limit / starting_after / ending_before: Pagination controls.
+            limit / starting_after: Pagination controls.
             **params: Any other supported query filter.
         """
         resp = await self._client.get("/v1/products", params=params)

@@ -25,7 +25,6 @@ class ReceivedInvoices:
             status: Filter by status.
             limit: Max results per page (default 25, max 100).
             starting_after: Cursor for forward pagination.
-            ending_before: Cursor for backward pagination.
         """
         resp = self._client.get("/v1/received-invoices", params=params)
         return SyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)

@@ -54,7 +54,7 @@ class Invoices:
             customerId: Filter by customer ID.
             convertedFrom: Filter by source quote ID (a ``quo_…`` string);
                 returns only the invoices converted from that quote.
-            limit / starting_after / ending_before: Pagination controls.
+            limit / starting_after: Pagination controls.
             **params: Any other supported query filter.
         """
         resp = self._client.get("/v1/invoices", params=params)
@@ -289,7 +289,7 @@ class AsyncInvoices:
             customerId: Filter by customer ID.
             convertedFrom: Filter by source quote ID (a ``quo_…`` string);
                 returns only the invoices converted from that quote.
-            limit / starting_after / ending_before: Pagination controls.
+            limit / starting_after: Pagination controls.
             **params: Any other supported query filter.
         """
         resp = await self._client.get("/v1/invoices", params=params)

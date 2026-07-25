@@ -70,7 +70,6 @@ class ListParams(TypedDict, total=False):
     """Common query parameters for list endpoints."""
     limit: int
     starting_after: str
-    ending_before: str
     status: str
     include_deleted: bool
 
