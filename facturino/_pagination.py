@@ -17,8 +17,8 @@ Usage:
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Coroutine, Iterator
-from typing import Any, Callable
+from collections.abc import AsyncIterator, Callable, Coroutine, Iterator
+from typing import Any
 
 
 class SyncPage:
