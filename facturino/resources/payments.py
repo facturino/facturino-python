@@ -23,7 +23,7 @@ class Payments:
         Args:
             invoice_id: The invoice to record payment against.
             amount: Payment amount in integer centimes (e.g. 10000 = 100.00 EUR).
-            method: Payment method (transfer, card, check, cash, direct_debit).
+            method: Payment method (transfer, card, check, cash, direct_debit, sepa, paypal).
             paid_at: ISO 8601 date when payment was received.
             reference: Optional payment reference.
 
@@ -72,7 +72,7 @@ class AsyncPayments:
         Args:
             invoice_id: The invoice to record payment against.
             amount: Payment amount in integer centimes (e.g. 10000 = 100.00 EUR).
-            method: Payment method (transfer, card, check, cash, direct_debit).
+            method: Payment method (transfer, card, check, cash, direct_debit, sepa, paypal).
             paid_at: ISO 8601 date when payment was received.
             reference: Optional payment reference.
         """

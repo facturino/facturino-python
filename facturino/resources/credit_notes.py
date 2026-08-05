@@ -112,7 +112,7 @@ class CreditNotes:
 
         Args:
             amount: Amount in integer centimes (defaults to the full credit-note total).
-            method: Payment method (transfer, card, check, cash, direct_debit, sepa).
+            method: Payment method (transfer, card, check, cash, direct_debit, sepa, paypal).
             refunded_at / refundedAt: ISO date of the disbursement.
 
         Returns:

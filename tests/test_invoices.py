@@ -366,3 +366,16 @@ class TestInvoiceDocuments:
 
         result = client.invoices.create_payment_token("inv_1")
         assert result["token"] == "abc123"
+
+    @respx.mock
+    def test_record_payment_paypal(self, client):
+        import json as _json
+        route = respx.post(f"{BASE}/v1/invoices/inv_1/payments").mock(
+            return_value=httpx.Response(201, json={
+                "id": "pay_pp", "object": "payment", "amount": 10000, "method": "paypal",
+            })
+        )
+        result = client.payments.create("inv_1", amount=10000, method="paypal", paid_at="2026-03-15")
+        assert result["method"] == "paypal"
+        sent = _json.loads(route.calls.last.request.content)
+        assert sent["method"] == "paypal"

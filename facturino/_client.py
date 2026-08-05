@@ -16,7 +16,7 @@ import httpx
 from ._errors import ApiError, FacturinoError
 
 # SDK metadata
-VERSION = "1.0.1"
+VERSION = "1.1.0"
 API_VERSION = "2026-03-01"
 DEFAULT_BASE_URL = "https://facturino.com/api"
 DEFAULT_TIMEOUT = 30.0
