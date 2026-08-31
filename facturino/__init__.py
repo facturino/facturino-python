@@ -1,41 +1,51 @@
 """Facturino Python SDK — developer-first e-invoicing for France.
 
+The recommended path is decision-first: identity → final tax decision →
+create the decision-backed draft immediately → your chosen collection flow.
+Facturino imposes no payment service provider and no payment method.
+
 Usage::
 
     import facturino
 
     client = facturino.Client("fac_test_xxx")
 
-    # Create a customer
-    customer = client.customers.create(
-        name="ACME Corp",
-        type="company",
-        email="billing@acme.com",
-        siret="12345678901234",
-    )
-
-    # Create and finalize an invoice
-    invoice = client.invoices.create(
-        customer=customer["id"],
-        buyer={"companyName": "Acme SAS", "siret": "55208131766522",
-               "address": {"line1": "10 rue de la Paix", "postalCode": "75002", "city": "Paris", "country": "FR"}},
-        items=[{
-            "description": "Consulting",
-            "quantity": "1",
-            "unit": "flat_rate",
-            "unitPrice": 10000,
-            "vatRate": 2000,
-            "vatCode": "S",
+    # 1. Decide before the final amount is presented, the invoice is
+    #    issued, or collection starts.
+    decision = client.tax_decisions.create(
+        tax_source="facturino",
+        customer_id="cus_8f2k4m9n",
+        effective_at="2026-09-15",
+        currency="eur",
+        price_mode="tax_exclusive",
+        lines=[{
+            "reference": "abo-pro",
+            "description": "Abonnement Pro",
+            "category": "electronically_supplied_services",
+            "rate_category": "standard",
+            "unit_amount": 2900,   # integer cents
+            "quantity": "1",       # decimal STRING, never a float
         }],
-        dates={"issued": "2026-07-01", "due": "2026-07-31"},
-        payment={"terms": "Paiement à 30 jours", "termsDays": 30, "method": "transfer",
-                 "latePaymentRate": "10.00", "collectionFee": "40.00"},
+        idempotency_key="order-4711",
     )
-    finalized = client.invoices.finalize(invoice["id"])
 
-    # Auto-pagination
-    for inv in client.invoices.list(limit=10):
-        print(inv["id"], inv["status"])
+    # 2. Act only on a final decision: amounts are None otherwise, never 0.
+    assert decision["status"] == "final", decision["issues"]
+
+    # 3. Create the decision-backed draft immediately: no VAT is restated.
+    invoice = client.invoices.create(
+        customerId=decision["customerId"],
+        taxDecisionId=decision["id"],
+        decisionLines=[{"taxLineRef": "abo-pro", "unit": "month"}],
+        buyer=buyer_snapshot,
+        dates={"issued": "2026-09-15", "due": "2026-10-15"},
+        payment=payment_terms,
+    )
+
+    # 4. Collect ``decision["amountToCharge"]`` through the flow of your
+    #    choice, finalize, record the real payment, and send only when
+    #    ``invoiceChannel`` is ``einvoicing``.
+    client.invoices.finalize(invoice["id"])
 
     # Webhook verification
     event = facturino.Webhook.construct_event(payload, signature, secret)
@@ -44,10 +54,15 @@ Async usage::
 
     async_client = facturino.AsyncClient("fac_test_xxx")
 
-    invoice = await async_client.invoices.create(customer="cus_xxx", items=[...])
+    decision = await async_client.tax_decisions.create(
+        **operation, idempotency_key="order-4711"
+    )
 
-    async for inv in await async_client.invoices.list():
-        print(inv["id"])
+Two equal fiscal sources share the same cycle, declared with ``tax_source``:
+``"facturino"`` (Facturino determines the VAT) and ``"integration"`` (your
+system supplies the VAT of every line — ``vat_rate``, ``vat_code``, and where
+the rate is zero a ``vatex_code`` and ``place_of_supply``; contradictions are
+refused, never silently corrected).
 """
 
 from __future__ import annotations
@@ -89,6 +104,7 @@ from .resources.recurring_invoices import AsyncRecurringInvoices, RecurringInvoi
 from .resources.reference import AsyncReference, Reference
 from .resources.reporting import AsyncReporting, Reporting
 from .resources.sandbox import AsyncSandbox, Sandbox
+from .resources.tax_decisions import AsyncTaxDecisions, TaxDecisions
 from .resources.usage import AsyncUsage, Usage
 from .resources.validate import AsyncValidate, Validate
 from .resources.webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
@@ -173,6 +189,7 @@ class Client:
         self.jobs = Jobs(self._http)
         self.reference = Reference(self._http)
         self.sandbox = Sandbox(self._http)
+        self.tax_decisions = TaxDecisions(self._http)
         self.usage = Usage(self._http)
         self.validate = Validate(self._http)
         self.health = Health(self._http)
@@ -248,6 +265,7 @@ class AsyncClient:
         self.jobs = AsyncJobs(self._http)
         self.reference = AsyncReference(self._http)
         self.sandbox = AsyncSandbox(self._http)
+        self.tax_decisions = AsyncTaxDecisions(self._http)
         self.usage = AsyncUsage(self._http)
         self.validate = AsyncValidate(self._http)
         self.health = AsyncHealth(self._http)

@@ -38,7 +38,9 @@ class CreditNotes:
     def __init__(self, client: SyncHttpClient) -> None:
         self._client = client
 
-    def create(self, **params: Any) -> dict[str, Any]:
+    def create(
+        self, *, idempotency_key: str | None = None, **params: Any
+    ) -> dict[str, Any]:
         """Create a draft credit note.
 
         Args:
@@ -47,7 +49,9 @@ class CreditNotes:
             credit_note_type / creditNoteType: Type of credit note.
             reason_code / reasonCode: Reason code (defective_goods, duplicate, quality, other).
             reason: Free-text reason.
-            items: List of line items.
+            credited_lines / creditedLines: The credited fractions, one entry
+                per credited invoice line (``taxLineRef`` + amount). The VAT is
+                inherited from the invoice's frozen snapshot, never restated.
             dates: Dict with issued date.
             notes: Free-text notes.
         """
@@ -60,7 +64,11 @@ class CreditNotes:
             body["creditNoteType"] = body.pop("credit_note_type")
         if "reason_code" in body and "reasonCode" not in body:
             body["reasonCode"] = body.pop("reason_code")
-        resp = self._client.post("/v1/credit-notes", json=body)
+        if "credited_lines" in body and "creditedLines" not in body:
+            body["creditedLines"] = body.pop("credited_lines")
+        resp = self._client.post(
+            "/v1/credit-notes", json=body, idempotency_key=idempotency_key
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     def list(self, **params: Any) -> SyncPage:
@@ -169,7 +177,9 @@ class AsyncCreditNotes:
     def __init__(self, client: AsyncHttpClient) -> None:
         self._client = client
 
-    async def create(self, **params: Any) -> dict[str, Any]:
+    async def create(
+        self, *, idempotency_key: str | None = None, **params: Any
+    ) -> dict[str, Any]:
         """Create a draft credit note.
 
         Args:
@@ -178,7 +188,9 @@ class AsyncCreditNotes:
             credit_note_type / creditNoteType: Type of credit note.
             reason_code / reasonCode: Reason code (defective_goods, duplicate, quality, other).
             reason: Free-text reason.
-            items: List of line items.
+            credited_lines / creditedLines: The credited fractions, one entry
+                per credited invoice line (``taxLineRef`` + amount). The VAT is
+                inherited from the invoice's frozen snapshot, never restated.
             dates: Dict with issued date.
             notes: Free-text notes.
         """
@@ -191,7 +203,11 @@ class AsyncCreditNotes:
             body["creditNoteType"] = body.pop("credit_note_type")
         if "reason_code" in body and "reasonCode" not in body:
             body["reasonCode"] = body.pop("reason_code")
-        resp = await self._client.post("/v1/credit-notes", json=body)
+        if "credited_lines" in body and "creditedLines" not in body:
+            body["creditedLines"] = body.pop("credited_lines")
+        resp = await self._client.post(
+            "/v1/credit-notes", json=body, idempotency_key=idempotency_key
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     async def list(self, **params: Any) -> AsyncPage:

@@ -13,21 +13,103 @@ from .._client import AsyncHttpClient, SyncHttpClient
 from .._pagination import AsyncPage, SyncPage
 
 
+def _build_invoice_create_body(params: dict[str, Any]) -> dict[str, Any]:
+    """Normalize aliases and enforce the decision-first contract locally."""
+    body = dict(params)
+    if "customer" in body and "customerId" not in body:
+        body["customerId"] = body.pop("customer")
+    if "tax_decision_id" in body and "taxDecisionId" not in body:
+        body["taxDecisionId"] = body.pop("tax_decision_id")
+    if "decision_lines" in body and "decisionLines" not in body:
+        body["decisionLines"] = body.pop("decision_lines")
+
+    for removed in ("items", "lines"):
+        # PRESENCE of the key is refused — an empty list included: it states
+        # the intent to restate VAT on the invoice, which no contract allows.
+        if removed in body:
+            raise ValueError(
+                f"'{removed}' is not part of the invoice contract: an invoice "
+                "never states its own VAT. Create a tax decision first "
+                "(client.tax_decisions.create), then reference it with "
+                "'taxDecisionId' and describe the document lines with "
+                "'decisionLines'."
+            )
+    tax_decision_id = body.get("taxDecisionId")
+    if not isinstance(tax_decision_id, str) or not tax_decision_id:
+        raise ValueError(
+            "'taxDecisionId' is required: every invoice is created from an "
+            "immutable tax decision (POST /v1/tax-decisions)."
+        )
+    decision_lines = body.get("decisionLines")
+    if not isinstance(decision_lines, list) or not decision_lines:
+        raise ValueError(
+            "'decisionLines' is required and non-empty: each entry references "
+            "a decision line by 'taxLineRef' and completes the document-only "
+            "details (unit, product)."
+        )
+    return body
+
+
+
+def _build_bind_decision_body(params: dict[str, Any]) -> dict[str, Any]:
+    """Normalize aliases and enforce the binding contract locally.
+
+    Binding carries the decision and the presentation of its lines, and nothing
+    else: the draft already states the buyer, the dates and the payment terms,
+    and the decision states the whole fiscal content.
+    """
+    body = dict(params)
+    if "tax_decision_id" in body and "taxDecisionId" not in body:
+        body["taxDecisionId"] = body.pop("tax_decision_id")
+    if "decision_lines" in body and "decisionLines" not in body:
+        body["decisionLines"] = body.pop("decision_lines")
+
+    tax_decision_id = body.get("taxDecisionId")
+    if not isinstance(tax_decision_id, str) or not tax_decision_id:
+        raise ValueError(
+            "'taxDecisionId' is required: a commercial draft is fiscalised by "
+            "binding a FINAL tax decision to it (POST /v1/tax-decisions)."
+        )
+    decision_lines = body.get("decisionLines")
+    if not isinstance(decision_lines, list) or not decision_lines:
+        raise ValueError(
+            "'decisionLines' is required and non-empty: each entry references "
+            "a decision line by 'taxLineRef' and completes the document-only "
+            "details (unit, product)."
+        )
+    return body
+
+
 class Invoices:
     """Synchronous invoices resource."""
 
     def __init__(self, client: SyncHttpClient) -> None:
         self._client = client
 
-    def create(self, **params: Any) -> dict[str, Any]:
-        """Create a draft invoice.
+    def create(
+        self, *, idempotency_key: str | None = None, **params: Any
+    ) -> dict[str, Any]:
+        """Create a draft invoice from an immutable tax decision.
+
+        Every invoice references the decision that fixed its VAT and its
+        amounts; the invoice never restates a rate. ``items``/``lines`` are
+        refused locally, before any HTTP call.
 
         Args:
             customer: Customer ID.
-            items: List of line items (description, quantity, unit_price, vat_rate).
+            tax_decision_id / taxDecisionId: The final decision backing this
+                invoice. One decision creates exactly one invoice.
+            decision_lines / decisionLines: One entry per decision line —
+                ``taxLineRef`` plus the document-only details (``unit``,
+                ``product``).
             type: Invoice type (default "standard").
+            buyer: Buyer identity snapshot.
             dates: Dict with issued, due, serviceStart, serviceEnd.
             payment: Payment info (terms, method, etc.).
+            deposits: Fully paid deposit invoices deducted from this balance
+                invoice, settled server-side against the DECIDED amount.
+            schedule: Instalments in integer cents; they must distribute
+                exactly the decided amount due.
             notes: Free-text notes.
             metadata: Arbitrary key-value metadata.
             **params: Additional fields passed to the API.
@@ -35,15 +117,10 @@ class Invoices:
         Returns:
             The created invoice dict.
         """
-        # Map 'customer' to 'customerId' for API compatibility
-        body = dict(params)
-        if "customer" in body and "customerId" not in body:
-            body["customerId"] = body.pop("customer")
-        # Accept both 'items' and 'lines'
-        if "items" in body and "lines" not in body:
-            body["lines"] = body.pop("items")
-
-        resp = self._client.post("/v1/invoices", json=body)
+        body = _build_invoice_create_body(params)
+        resp = self._client.post(
+            "/v1/invoices", json=body, idempotency_key=idempotency_key
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     def list(self, **params: Any) -> SyncPage:
@@ -76,15 +153,51 @@ class Invoices:
         return resp.json()  # type: ignore[no-any-return]
 
     def update(self, invoice_id: str, **params: Any) -> dict[str, Any]:
-        """Only draft invoices can be updated. Finalized invoices are immutable."""
-        body = dict(params)
-        if "items" in body and "lines" not in body:
-            body["lines"] = body.pop("items")
-        resp = self._client.patch(f"/v1/invoices/{invoice_id}", json=body)
+        """Update a draft invoice's non-fiscal fields.
+
+        Only drafts can be updated, and only ``dates``, ``payment``, ``notes``,
+        ``purchaseOrderNumber`` and ``metadata``: the commercial operation and
+        its VAT belong to the decision, which is immutable. To change the
+        operation, take a new decision and create a new draft.
+        """
+        resp = self._client.patch(f"/v1/invoices/{invoice_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
     def delete(self, invoice_id: str) -> None:
         self._client.delete(f"/v1/invoices/{invoice_id}")
+
+    def bind_tax_decision(
+        self, invoice_id: str, *, idempotency_key: str | None = None, **params: Any
+    ) -> dict[str, Any]:
+        """Bind a FINAL tax decision to a commercial draft that already exists.
+
+        This closes the quote cycle on ONE document::
+
+            converted = client.quotes.convert(quote_id)
+            decision = client.tax_decisions.create(idempotency_key=key, ...)
+            client.invoices.bind_tax_decision(
+                converted["invoiceId"],
+                tax_decision_id=decision["id"],
+                decision_lines=[{"taxLineRef": "l1", "unit": "unit"}],
+            )
+            client.invoices.finalize(converted["invoiceId"])
+
+        The invoice stays a DRAFT: binding freezes the VAT, ``finalize`` issues
+        it. Idempotent on the decision — replaying the same call returns the
+        same invoice.
+
+        Args:
+            invoice_id: The commercial draft to fiscalise.
+            tax_decision_id / taxDecisionId: The FINAL decision to bind.
+            decision_lines / decisionLines: One entry per decision line.
+        """
+        body = _build_bind_decision_body(params)
+        resp = self._client.post(
+            f"/v1/invoices/{invoice_id}/bind-tax-decision",
+            json=body,
+            idempotency_key=idempotency_key,
+        )
+        return resp.json()  # type: ignore[no-any-return]
 
     def finalize(self, invoice_id: str) -> dict[str, Any]:
         """Finalize an invoice: assign number, lock for editing, generate legal mentions."""
@@ -260,25 +373,19 @@ class AsyncInvoices:
     def __init__(self, client: AsyncHttpClient) -> None:
         self._client = client
 
-    async def create(self, **params: Any) -> dict[str, Any]:
-        """Create a draft invoice.
+    async def create(
+        self, *, idempotency_key: str | None = None, **params: Any
+    ) -> dict[str, Any]:
+        """Create a draft invoice from an immutable tax decision.
 
-        Args:
-            customer: Customer ID.
-            items: List of line items (description, quantity, unit_price, vat_rate).
-            type: Invoice type (default "standard").
-            dates: Dict with issued, due, serviceStart, serviceEnd.
-            payment: Payment info (terms, method, etc.).
-            notes: Free-text notes.
-            metadata: Arbitrary key-value metadata.
-            **params: Additional fields passed to the API.
+        Same contract as the synchronous resource: ``taxDecisionId`` +
+        ``decisionLines`` are required and ``items``/``lines`` are refused
+        locally, before any HTTP call. See :meth:`Invoices.create`.
         """
-        body = dict(params)
-        if "customer" in body and "customerId" not in body:
-            body["customerId"] = body.pop("customer")
-        if "items" in body and "lines" not in body:
-            body["lines"] = body.pop("items")
-        resp = await self._client.post("/v1/invoices", json=body)
+        body = _build_invoice_create_body(params)
+        resp = await self._client.post(
+            "/v1/invoices", json=body, idempotency_key=idempotency_key
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     async def list(self, **params: Any) -> AsyncPage:
@@ -311,15 +418,27 @@ class AsyncInvoices:
         return resp.json()  # type: ignore[no-any-return]
 
     async def update(self, invoice_id: str, **params: Any) -> dict[str, Any]:
-        """Only draft invoices can be updated. Finalized invoices are immutable."""
-        body = dict(params)
-        if "items" in body and "lines" not in body:
-            body["lines"] = body.pop("items")
-        resp = await self._client.patch(f"/v1/invoices/{invoice_id}", json=body)
+        """Update a draft invoice's non-fiscal fields. See :meth:`Invoices.update`."""
+        resp = await self._client.patch(f"/v1/invoices/{invoice_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
     async def delete(self, invoice_id: str) -> None:
         await self._client.delete(f"/v1/invoices/{invoice_id}")
+
+    async def bind_tax_decision(
+        self, invoice_id: str, *, idempotency_key: str | None = None, **params: Any
+    ) -> dict[str, Any]:
+        """Bind a FINAL tax decision to a commercial draft that already exists.
+
+        Async twin of :meth:`Invoices.bind_tax_decision`; same contract.
+        """
+        body = _build_bind_decision_body(params)
+        resp = await self._client.post(
+            f"/v1/invoices/{invoice_id}/bind-tax-decision",
+            json=body,
+            idempotency_key=idempotency_key,
+        )
+        return resp.json()  # type: ignore[no-any-return]
 
     async def finalize(self, invoice_id: str) -> dict[str, Any]:
         """Assign number, lock for editing, generate legal mentions."""

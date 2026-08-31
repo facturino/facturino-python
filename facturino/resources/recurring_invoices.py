@@ -17,7 +17,9 @@ class RecurringInvoices:
     def __init__(self, client: SyncHttpClient) -> None:
         self._client = client
 
-    def create(self, **params: Any) -> dict[str, Any]:
+    def create(
+        self, *, idempotency_key: str | None = None, **params: Any
+    ) -> dict[str, Any]:
         """Create a recurring invoice schedule.
 
         Args:
@@ -25,7 +27,12 @@ class RecurringInvoices:
             frequency: "monthly", "quarterly", "yearly", or "custom".
             start_date / startDate: ISO date for first generation.
             next_generation_date / nextGenerationDate: Next scheduled date.
-            template_invoice / templateInvoice: Template data for generated invoices.
+            tax_inputs / taxInputs: The fiscal declaration re-decided at every
+                occurrence: ``taxSource``, ``priceMode`` and the commercial
+                lines. Required — each generated invoice gets its OWN decision
+                on its generation date.
+            template_invoice / templateInvoice: Document-only template data for
+                generated invoices (payment terms, notes); never VAT.
             auto_finalize / autoFinalize: Auto-finalize generated invoices.
             auto_send / autoSend: Auto-send generated invoices to PA.
             end_date / endDate: Optional end date.
@@ -36,13 +43,16 @@ class RecurringInvoices:
             ("start_date", "startDate"),
             ("next_generation_date", "nextGenerationDate"),
             ("end_date", "endDate"),
+            ("tax_inputs", "taxInputs"),
             ("template_invoice", "templateInvoice"),
             ("auto_finalize", "autoFinalize"),
             ("auto_send", "autoSend"),
         ]:
             if snake in body and camel not in body:
                 body[camel] = body.pop(snake)
-        resp = self._client.post("/v1/recurring-invoices", json=body)
+        resp = self._client.post(
+            "/v1/recurring-invoices", json=body, idempotency_key=idempotency_key
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     def list(self, **params: Any) -> SyncPage:
@@ -57,6 +67,7 @@ class RecurringInvoices:
         body = dict(params)
         for snake, camel in [
             ("end_date", "endDate"),
+            ("tax_inputs", "taxInputs"),
             ("template_invoice", "templateInvoice"),
             ("auto_finalize", "autoFinalize"),
             ("auto_send", "autoSend"),
@@ -87,7 +98,9 @@ class AsyncRecurringInvoices:
     def __init__(self, client: AsyncHttpClient) -> None:
         self._client = client
 
-    async def create(self, **params: Any) -> dict[str, Any]:
+    async def create(
+        self, *, idempotency_key: str | None = None, **params: Any
+    ) -> dict[str, Any]:
         """Create a recurring invoice schedule.
 
         Args:
@@ -95,7 +108,12 @@ class AsyncRecurringInvoices:
             frequency: "monthly", "quarterly", "yearly", or "custom".
             start_date / startDate: ISO date for first generation.
             next_generation_date / nextGenerationDate: Next scheduled date.
-            template_invoice / templateInvoice: Template data for generated invoices.
+            tax_inputs / taxInputs: The fiscal declaration re-decided at every
+                occurrence: ``taxSource``, ``priceMode`` and the commercial
+                lines. Required — each generated invoice gets its OWN decision
+                on its generation date.
+            template_invoice / templateInvoice: Document-only template data for
+                generated invoices (payment terms, notes); never VAT.
             auto_finalize / autoFinalize: Auto-finalize generated invoices.
             auto_send / autoSend: Auto-send generated invoices to PA.
             end_date / endDate: Optional end date.
@@ -106,13 +124,16 @@ class AsyncRecurringInvoices:
             ("start_date", "startDate"),
             ("next_generation_date", "nextGenerationDate"),
             ("end_date", "endDate"),
+            ("tax_inputs", "taxInputs"),
             ("template_invoice", "templateInvoice"),
             ("auto_finalize", "autoFinalize"),
             ("auto_send", "autoSend"),
         ]:
             if snake in body and camel not in body:
                 body[camel] = body.pop(snake)
-        resp = await self._client.post("/v1/recurring-invoices", json=body)
+        resp = await self._client.post(
+            "/v1/recurring-invoices", json=body, idempotency_key=idempotency_key
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     async def list(self, **params: Any) -> AsyncPage:
@@ -127,6 +148,7 @@ class AsyncRecurringInvoices:
         body = dict(params)
         for snake, camel in [
             ("end_date", "endDate"),
+            ("tax_inputs", "taxInputs"),
             ("template_invoice", "templateInvoice"),
             ("auto_finalize", "autoFinalize"),
             ("auto_send", "autoSend"),

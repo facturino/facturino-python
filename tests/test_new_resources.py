@@ -81,7 +81,7 @@ def test_usage_retrieve() -> None:
 @respx.mock
 def test_health_check() -> None:
     route = respx.get(f"{BASE}/v1/health").mock(
-        return_value=httpx.Response(200, json={"status": "ok", "apiVersion": "2026-03-01"})
+        return_value=httpx.Response(200, json={"status": "ok", "apiVersion": "2026-09-01"})
     )
 
     client = facturino.Client("fac_test_abc")

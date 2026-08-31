@@ -17,6 +17,7 @@ from .received_invoices import AsyncReceivedInvoices, ReceivedInvoices
 from .recurring_invoices import AsyncRecurringInvoices, RecurringInvoices
 from .reporting import AsyncReporting, Reporting
 from .sandbox import AsyncSandbox, Sandbox
+from .tax_decisions import AsyncTaxDecisions, TaxDecisions
 from .webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
 
 __all__ = [
@@ -54,6 +55,8 @@ __all__ = [
     "AsyncReporting",
     "Sandbox",
     "AsyncSandbox",
+    "TaxDecisions",
+    "AsyncTaxDecisions",
     "WebhookEndpoints",
     "AsyncWebhookEndpoints",
 ]

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 import respx
@@ -28,6 +30,7 @@ class TestInvoiceCreate:
                 "id": "inv_abc123",
                 "object": "invoice",
                 "status": "draft",
+                "taxSource": "facturino",
                 "customer": {"ref": "cus_xyz", "snapshot": {"name": "ACME"}},
                 "totals": {"totalHT": "100.00", "totalTVA": "20.00", "totalTTC": "120.00"},
             })
@@ -35,12 +38,8 @@ class TestInvoiceCreate:
 
         invoice = client.invoices.create(
             customer="cus_xyz",
-            items=[{
-                "description": "Consulting",
-                "quantity": 1,
-                "unit_price": 10000,
-                "vat_rate": 2000,
-            }],
+            taxDecisionId="taxdec_9c1f",
+            decisionLines=[{"taxLineRef": "consulting", "unit": "hour"}],
         )
 
         assert invoice["id"] == "inv_abc123"
@@ -52,7 +51,11 @@ class TestInvoiceCreate:
             return_value=httpx.Response(201, json={"id": "inv_new", "object": "invoice"})
         )
 
-        client.invoices.create(customer="cus_123", items=[])
+        client.invoices.create(
+            customer="cus_123",
+            tax_decision_id="taxdec_9c1f",
+            decision_lines=[{"taxLineRef": "consulting", "unit": "hour"}],
+        )
 
         request = route.calls[0].request
         body = request.read()
@@ -61,22 +64,24 @@ class TestInvoiceCreate:
         assert "customerId" in parsed
         assert parsed["customerId"] == "cus_123"
         assert "customer" not in parsed
+        # The snake_case aliases reach the wire camelCase.
+        assert parsed["taxDecisionId"] == "taxdec_9c1f"
+        assert parsed["decisionLines"] == [{"taxLineRef": "consulting", "unit": "hour"}]
+        assert "tax_decision_id" not in parsed
+        assert "decision_lines" not in parsed
 
-    @respx.mock
-    def test_create_maps_items_to_lines(self, client):
-        route = respx.post(f"{BASE}/v1/invoices").mock(
-            return_value=httpx.Response(201, json={"id": "inv_new", "object": "invoice"})
-        )
-
-        client.invoices.create(
-            customer="cus_123",
-            items=[{"description": "Test", "quantity": 1, "unit_price": 5000, "vat_rate": 2000}],
-        )
-
-        import json
-        parsed = json.loads(route.calls[0].request.read())
-        assert "lines" in parsed
-        assert "items" not in parsed
+    def test_create_refuses_explicit_vat_lines(self, client):
+        # No respx route: the refusal happens before any HTTP call.
+        import pytest
+        with pytest.raises(ValueError, match="'items' is not part"):
+            client.invoices.create(
+                customer="cus_123",
+                taxDecisionId="taxdec_9c1f",
+                decisionLines=[{"taxLineRef": "consulting", "unit": "hour"}],
+                items=[{"description": "Test", "quantity": 1, "unit_price": 5000, "vat_rate": 2000}],
+            )
+        with pytest.raises(ValueError, match="'taxDecisionId' is required"):
+            client.invoices.create(customer="cus_123", decisionLines=[{"taxLineRef": "x", "unit": "unit"}])
 
 
 class TestInvoiceList:
@@ -156,6 +161,86 @@ class TestInvoiceGet:
 
         with pytest.raises(facturino.NotFoundError):
             client.invoices.get("inv_missing")
+
+
+class TestBindTaxDecision:
+    """Fiscalising a commercial draft that already exists — the quote cycle."""
+
+    BOUND = {
+        "id": "inv_converted",
+        "object": "invoice",
+        "status": "draft",
+        "taxSource": "facturino",
+        "taxDecisionId": "taxdec_1",
+        "number": None,
+    }
+
+    @respx.mock
+    def test_binds_the_decision_to_the_existing_draft(self, client):
+        route = respx.post(f"{BASE}/v1/invoices/inv_converted/bind-tax-decision").mock(
+            return_value=httpx.Response(200, json=self.BOUND)
+        )
+
+        result = client.invoices.bind_tax_decision(
+            "inv_converted",
+            tax_decision_id="taxdec_1",
+            decision_lines=[{"taxLineRef": "l1", "unit": "unit"}],
+        )
+
+        assert result["taxDecisionId"] == "taxdec_1"
+        assert result["taxSource"] == "facturino"
+        # Binding freezes the VAT; finalize() issues the invoice.
+        assert result["status"] == "draft"
+        assert json.loads(route.calls[0].request.content) == {
+            "taxDecisionId": "taxdec_1",
+            "decisionLines": [{"taxLineRef": "l1", "unit": "unit"}],
+        }
+
+    @respx.mock
+    def test_accepts_the_camel_case_aliases_too(self, client):
+        route = respx.post(f"{BASE}/v1/invoices/inv_converted/bind-tax-decision").mock(
+            return_value=httpx.Response(200, json=self.BOUND)
+        )
+
+        client.invoices.bind_tax_decision(
+            "inv_converted",
+            taxDecisionId="taxdec_1",
+            decisionLines=[{"taxLineRef": "l1", "unit": "unit"}],
+        )
+
+        assert json.loads(route.calls[0].request.content)["taxDecisionId"] == "taxdec_1"
+
+    @respx.mock
+    def test_closes_the_quote_cycle_on_one_invoice(self, client):
+        respx.post(f"{BASE}/v1/invoices/inv_converted/bind-tax-decision").mock(
+            return_value=httpx.Response(200, json=self.BOUND)
+        )
+        respx.post(f"{BASE}/v1/invoices/inv_converted/finalize").mock(
+            return_value=httpx.Response(200, json={**self.BOUND, "status": "finalized", "number": "FAC-00001"})
+        )
+
+        bound = client.invoices.bind_tax_decision(
+            "inv_converted",
+            tax_decision_id="taxdec_1",
+            decision_lines=[{"taxLineRef": "l1", "unit": "unit"}],
+        )
+        finalized = client.invoices.finalize(bound["id"])
+
+        # One document throughout: no second invoice was ever created.
+        assert finalized["id"] == "inv_converted"
+        assert finalized["number"] == "FAC-00001"
+
+    def test_refuses_locally_without_a_decision(self, client):
+        with pytest.raises(ValueError, match="taxDecisionId"):
+            client.invoices.bind_tax_decision(
+                "inv_converted", decision_lines=[{"taxLineRef": "l1", "unit": "unit"}]
+            )
+
+    def test_refuses_locally_an_empty_presentation(self, client):
+        with pytest.raises(ValueError, match="decisionLines"):
+            client.invoices.bind_tax_decision(
+                "inv_converted", tax_decision_id="taxdec_1", decision_lines=[]
+            )
 
 
 class TestInvoiceActions:
