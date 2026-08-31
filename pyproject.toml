@@ -38,6 +38,9 @@ dev = [
     "respx>=0.21",
     "mypy>=1.0",
     "ruff>=0.1",
+    # Anti-drift test only: reads pyproject.toml. `tomllib` is stdlib from 3.11
+    # (PEP 680), so 3.10 needs the backport. Never a runtime dependency.
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.urls]

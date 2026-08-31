@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import pathlib
+import sys
 
-import tomllib
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # Python 3.10: tomllib entered the stdlib in 3.11 (PEP 680).
+    import tomli as tomllib
 
 import facturino
 
