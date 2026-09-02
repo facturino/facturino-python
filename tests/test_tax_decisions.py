@@ -36,6 +36,8 @@ FINAL_DECISION = {
     "invoiceChannel": "einvoicing",
     "transactionReporting": "none",
     "paymentReporting": "fr212",
+    "settledObligations": None,
+    "euB2cDestination": None,
     "foreignTaxReviewRequired": False,
     "vies": None,
     "issues": [],
@@ -305,6 +307,11 @@ class TestCreate:
                 "invoiceChannel": None,
                 "transactionReporting": None,
                 "paymentReporting": None,
+                "settledObligations": {
+                    "invoiceChannel": "none",
+                    "transactionReporting": "ereporting",
+                    "paymentReporting": None,
+                },
                 "issues": [{"code": "vies_unavailable", "message": "VIES is unreachable."}],
             })
         )
@@ -318,6 +325,15 @@ class TestCreate:
         assert decision["amountToCharge"] is None
         assert decision["totals"] is None
         assert decision["issues"][0]["code"] == "vies_unavailable"
+        # The three document axes stay None — an axis is never read off a
+        # decision that did not conclude — while what French law settled anyway
+        # is carried as a VALUE.
+        assert decision["invoiceChannel"] is None
+        assert decision["settledObligations"] == {
+            "invoiceChannel": "none",
+            "transactionReporting": "ereporting",
+            "paymentReporting": None,
+        }
 
     @respx.mock
     def test_retry_carries_lineage_and_keeps_the_operation(self, client):
@@ -581,6 +597,296 @@ class TestParityGuard:
             assert callable(getattr(async_client.tax_decisions, method))
 
     @respx.mock
+    def test_the_eu_b2c_destination_trace_is_readable(self, client):
+        """The rate a document bears must be auditable years later."""
+        respx.post(f"{BASE}/v1/tax-decisions").mock(
+            return_value=httpx.Response(201, json={
+                **FINAL_DECISION,
+                "euB2cDestination": {
+                    "coveredLineIds": ["line-1"],
+                    "ruleKinds": ["tbe_services"],
+                    "destinationMemberState": "DE",
+                    "destinationTerritoryId": "DE",
+                    "place": "destination",
+                    "basis": "threshold_exceeded",
+                    "reference": "Directive 2006/112/CE art. 59 quater §1",
+                    "detail": "Declared previous-year total exceeds the cap",
+                    "threshold": {
+                        "decidedOn": "ledger_cumulative",
+                        "capCents": 1000000,
+                        "stateId": "2026_test",
+                        "year": "2026",
+                        "stateVersion": 4,
+                        "sequence": 7,
+                        "reservationId": "claim_1",
+                        "coverageMode": "mixed_channels",
+                        "cumulativeBeforeMinCents": 140000,
+                        "operationValueMinCents": 2900,
+                        "cumulativeAfterMinCents": 142900,
+                    },
+                    "option": None,
+                    "mechanism": {
+                        "kind": "oss_union",
+                        "memberState": "DE",
+                        "reference": "régime UE",
+                    },
+                    "rate": {
+                        "registryVersion": "eu-standard-rates-2026-09-01",
+                        "memberState": "DE",
+                        "territoryId": "DE",
+                        "regionId": None,
+                        "centipercent": 1900,
+                        "validFrom": "2026-09-01",
+                        "validTo": None,
+                        "source": "Commission européenne",
+                        "verifiedAt": "2026-09-01",
+                    },
+                },
+            })
+        )
+        decision = client.tax_decisions.create(
+            **DECISION_PARAMS, idempotency_key="order-eu"
+        )
+
+        trace = decision["euB2cDestination"]
+        assert trace["place"] == "destination"
+        assert trace["rate"]["centipercent"] == 1900
+        assert trace["rate"]["registryVersion"] == "eu-standard-rates-2026-09-01"
+        assert trace["mechanism"]["kind"] == "oss_union"
+        # The ledger the decision drew on, and the slice it took there.
+        assert trace["threshold"]["stateId"] == "2026_test"
+        assert trace["threshold"]["cumulativeAfterMinCents"] == 142900
+
+    @respx.mock
+    def test_the_movement_of_goods_reaches_an_integration_line(self, client):
+        """The distance-sale rule is decided by a fact, never by an assumption."""
+        route = respx.post(f"{BASE}/v1/tax-decisions").mock(
+            return_value=httpx.Response(201, json=FINAL_DECISION)
+        )
+        client.tax_decisions.create(
+            tax_source="integration",
+            customer_id="cus_8f2k4m9n",
+            effective_at="2026-09-15",
+            currency="eur",
+            price_mode="tax_exclusive",
+            lines=[{
+                "reference": "line-1",
+                "description": "Chaise",
+                "category": "goods",
+                "goods_movement": "dispatched_to_buyer_territory",
+                "unit_amount": 2900,
+                "quantity": "1",
+                "vat_rate": 1900,
+                "vat_code": "S",
+            }],
+            idempotency_key="order-goods",
+        )
+
+        body = json.loads(route.calls.last.request.content)
+        assert body["lines"][0]["goodsMovement"] == "dispatched_to_buyer_territory"
+
+    @respx.mock
+    def test_the_eu_threshold_ledger_round_trips(self, client):
+        """The running totals live in their own annual, append-only ledger."""
+        ledger = {
+            "object": "eu_threshold_ledger",
+            "id": "2026_test",
+            "year": "2026",
+            "status": "open",
+            "review": None,
+            "capCents": 1000000,
+            "evidenceCapCents": 10000000,
+            "opening": {
+                "previousYearAmount": 250000,
+                "currentYearOpening": 100000,
+                "previousYearEvidenceAmount": 150000,
+                "currentYearEvidenceOpening": 60000,
+                "coverageMode": "mixed_channels",
+                "externalCompleteThroughDate": "2026-01-01",
+                "declaredAt": "2026-01-01T09:00:00.000Z",
+            },
+            "acquiredMin": 100000,
+            "acquiredEvidenceMin": 60000,
+            "reservedMin": 0,
+            "reservedMax": 0,
+            "remainingMin": 900000,
+            "evidenceRemainingMin": 9940000,
+            "adjustmentTotal": 0,
+            "correctionTotal": 0,
+            "reservations": [],
+            "entries": [],
+            "entriesHasMore": False,
+            "entriesNextCursor": None,
+        }
+        opened = respx.post(f"{BASE}/v1/eu-threshold-ledgers").mock(
+            return_value=httpx.Response(201, json=ledger)
+        )
+        result = client.eu_threshold_ledgers.open(
+            year="2026",
+            previous_year_amount=250000,
+            current_year_opening=100000,
+            previous_year_evidence_amount=150000,
+            current_year_evidence_opening=60000,
+            coverage_mode="mixed_channels",
+            external_complete_through_date="2026-01-01",
+        )
+        assert result["remainingMin"] == 900000
+        # Acquired and reserved are read apart: a held slice may still disappear.
+        assert result["acquiredMin"] == 100000
+        assert result["reservedMax"] == 0
+        # The second counter has its own cap and its own remainder.
+        assert result["evidenceCapCents"] == 10000000
+        assert result["evidenceRemainingMin"] == 9940000
+        body = json.loads(opened.calls.last.request.content)
+        # snake_case in, camelCase on the wire.
+        assert body["previousYearAmount"] == 250000
+        assert body["previousYearEvidenceAmount"] == 150000
+        assert body["externalCompleteThroughDate"] == "2026-01-01"
+
+        respx.get(f"{BASE}/v1/eu-threshold-ledgers/2026").mock(
+            return_value=httpx.Response(200, json=ledger)
+        )
+        assert client.eu_threshold_ledgers.retrieve("2026")["year"] == "2026"
+
+        adjusted = respx.post(f"{BASE}/v1/eu-threshold-ledgers/2026/adjustments").mock(
+            return_value=httpx.Response(201, json={**ledger, "adjustmentTotal": 40000})
+        )
+        result = client.eu_threshold_ledgers.adjust(
+            "2026",
+            reference="adj-marketplace-08",
+            amount=40000,
+            evidence_amount=25000,
+            external_complete_through_date="2026-09-15",
+            reason="Marketplace sales, August",
+        )
+        assert result["adjustmentTotal"] == 40000
+        sent = json.loads(adjusted.calls.last.request.content)
+        assert sent["reference"] == "adj-marketplace-08"
+        assert sent["evidenceAmount"] == 25000
+
+    @respx.mock
+    def test_the_two_counters_may_legitimately_diverge(self, client):
+        """Neither counter bounds the other: their perimeters differ."""
+        route = respx.post(f"{BASE}/v1/eu-threshold-ledgers").mock(
+            return_value=httpx.Response(201, json={
+                "object": "eu_threshold_ledger",
+                "acquiredMin": 10000,
+                "acquiredEvidenceMin": 2000000,
+            })
+        )
+        opened = client.eu_threshold_ledgers.open(
+            year="2026",
+            previous_year_amount=10000,
+            current_year_opening=10000,
+            previous_year_evidence_amount=4000000,
+            current_year_evidence_opening=2000000,
+            coverage_mode="facturino_only",
+            external_complete_through_date="2026-01-01",
+        )
+        assert opened["acquiredEvidenceMin"] > opened["acquiredMin"]
+        sent = json.loads(route.calls.last.request.content)
+        assert sent["previousYearEvidenceAmount"] > sent["previousYearAmount"]
+
+    @respx.mock
+    def test_a_movement_publishes_its_remaining_balance(self, client):
+        """A movement gives back what it brought in, once."""
+        respx.get(f"{BASE}/v1/eu-threshold-ledgers/2026/entries").mock(
+            return_value=httpx.Response(200, json={
+                "object": "list",
+                "url": "/v1/eu-threshold-ledgers/2026/entries",
+                "data": [{
+                    "id": "opening", "kind": "opening", "amountMin": 100000,
+                    "correctable": True, "correctedMin": 30000, "correctionCount": 1,
+                    "remainingMin": 70000, "remainingEvidenceMin": 50000,
+                }],
+                "has_more": False,
+                "next_cursor": None,
+            })
+        )
+        page = client.eu_threshold_ledgers.list_entries("2026")
+        assert page["data"][0]["remainingMin"] == 70000
+        assert page["data"][0]["correctedMin"] == 30000
+
+    @respx.mock
+    def test_the_movements_are_walked_with_a_cursor(self, client):
+        """The ledger keeps every movement; a page shows some."""
+        page = {
+            "object": "list",
+            "url": "/v1/eu-threshold-ledgers/2026/entries",
+            "data": [{"id": "adj_abc", "sequence": 1, "kind": "external_adjustment"}],
+            "has_more": True,
+            "next_cursor": "adj_abc",
+        }
+        route = respx.get(f"{BASE}/v1/eu-threshold-ledgers/2026/entries").mock(
+            return_value=httpx.Response(200, json=page)
+        )
+        first = client.eu_threshold_ledgers.list_entries("2026", limit=1)
+        assert first["next_cursor"] == "adj_abc"
+        assert route.calls.last.request.url.params["limit"] == "1"
+
+        client.eu_threshold_ledgers.list_entries("2026", limit=1, starting_after="adj_abc")
+        assert route.calls.last.request.url.params["starting_after"] == "adj_abc"
+
+    @respx.mock
+    def test_an_amount_comes_back_only_through_a_qualified_correction(self, client):
+        """Art. 90(1) reduces the base of an IDENTIFIED supply, never a blind minus."""
+        route = respx.post(f"{BASE}/v1/eu-threshold-ledgers/2026/corrections").mock(
+            return_value=httpx.Response(201, json={"object": "eu_threshold_ledger", "correctionTotal": 20000})
+        )
+        result = client.eu_threshold_ledgers.correct(
+            "2026",
+            reference="cor-credit-note-12",
+            corrects_entry_id="adj_abc",
+            kind="credit_note",
+            amount=20000,
+            evidence_amount=10000,
+            related_resource_type="credit_note",
+            related_resource_id="crn_123",
+            evidence_reference="AV-2026-0012",
+            reason="Full credit note on a sale counted in August",
+        )
+        assert result["correctionTotal"] == 20000
+        sent = json.loads(route.calls.last.request.content)
+        assert sent["correctsEntryId"] == "adj_abc"
+        assert sent["relatedResourceId"] == "crn_123"
+        assert sent["evidenceReference"] == "AV-2026-0012"
+
+    @respx.mock
+    def test_a_ledger_under_review_stops_deciding(self, client):
+        opened = respx.post(f"{BASE}/v1/eu-threshold-ledgers/2026/review").mock(
+            return_value=httpx.Response(200, json={
+                "object": "eu_threshold_ledger",
+                "status": "review_required",
+                "review": {
+                    "code": "declared_by_administrator",
+                    "detail": "Opening figure disputed",
+                    "openedAt": "2026-09-15T10:00:00.000Z",
+                },
+            })
+        )
+        reviewed = client.eu_threshold_ledgers.review("2026", reason="Opening figure disputed")
+        assert reviewed["status"] == "review_required"
+        assert json.loads(opened.calls.last.request.content)["reason"] == "Opening figure disputed"
+
+        respx.post(f"{BASE}/v1/eu-threshold-ledgers/2026/review/resolve").mock(
+            return_value=httpx.Response(200, json={"object": "eu_threshold_ledger", "status": "open", "review": None})
+        )
+        settled = client.eu_threshold_ledgers.resolve_review(
+            "2026",
+            reconciled_version=4,
+            reconciled_acquired_min=100000,
+            reconciled_acquired_evidence_min=60000,
+            evidence_reference="RECON-2026-09",
+            reason="Corrected by adjustment",
+        )
+        assert settled["status"] == "open"
+        # A comment alone never reopens a ledger: the verified figures travel.
+        sent = json.loads(respx.calls.last.request.content)
+        assert sent["reconciledVersion"] == 4
+        assert sent["reconciledAcquiredMin"] == 100000
+        assert sent["evidenceReference"] == "RECON-2026-09"
+
+    @respx.mock
     def test_the_critical_decision_fields_stay_readable(self, client):
         respx.post(f"{BASE}/v1/tax-decisions").mock(
             return_value=httpx.Response(201, json=FINAL_DECISION)
@@ -591,7 +897,8 @@ class TestParityGuard:
 
         for field in (
             "status", "amountToCharge", "totals", "invoiceChannel",
-            "transactionReporting", "paymentReporting", "foreignTaxReviewRequired",
+            "transactionReporting", "paymentReporting", "settledObligations",
+            "euB2cDestination", "foreignTaxReviewRequired",
             "retryOfTaxDecisionId", "expired", "rulesVersion",
             "operationFingerprint", "obligationReasons", "vies", "issues",
         ):

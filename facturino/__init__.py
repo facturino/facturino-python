@@ -105,6 +105,7 @@ from .resources.reference import AsyncReference, Reference
 from .resources.reporting import AsyncReporting, Reporting
 from .resources.sandbox import AsyncSandbox, Sandbox
 from .resources.tax_decisions import AsyncTaxDecisions, TaxDecisions
+from .resources.eu_threshold_ledgers import AsyncEuThresholdLedgers, EuThresholdLedgers
 from .resources.usage import AsyncUsage, Usage
 from .resources.validate import AsyncValidate, Validate
 from .resources.webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
@@ -190,6 +191,7 @@ class Client:
         self.reference = Reference(self._http)
         self.sandbox = Sandbox(self._http)
         self.tax_decisions = TaxDecisions(self._http)
+        self.eu_threshold_ledgers = EuThresholdLedgers(self._http)
         self.usage = Usage(self._http)
         self.validate = Validate(self._http)
         self.health = Health(self._http)
@@ -266,6 +268,7 @@ class AsyncClient:
         self.reference = AsyncReference(self._http)
         self.sandbox = AsyncSandbox(self._http)
         self.tax_decisions = AsyncTaxDecisions(self._http)
+        self.eu_threshold_ledgers = AsyncEuThresholdLedgers(self._http)
         self.usage = AsyncUsage(self._http)
         self.validate = AsyncValidate(self._http)
         self.health = AsyncHealth(self._http)

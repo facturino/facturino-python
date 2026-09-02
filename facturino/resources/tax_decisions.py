@@ -25,6 +25,41 @@ Every decision states its ``taxSource``:
 
 Both sources produce the same decision object, feed the same reporting
 obligations engine and back invoices the same way.
+
+``vat_rate``, ``vat_code`` and ``vatex_code`` describe FRENCH VAT: the contract
+has no local-tax jurisdiction, no local tax scheme and no withholding, so the
+``"integration"`` source is not a way to pass one through. Where a local tax of a
+French overseas collectivity or the TAAF (PM, BL, MF, PF, NC, WF, TF) can change
+what is invoiced or what is collected, the decision is not final under EITHER
+source. The one sourced exception is a B2B service located in New Caledonia
+(art. Lp. 507-1). ``place_of_supply`` is therefore required on every
+``"integration"`` line as soon as the buyer is established in one of the seven.
+
+Territoriality, on the other hand, is the SAME under both sources — including the
+frontier of the perimeter itself: a seller established outside the French VAT
+territory, or a buyer sitting in a territory excluded from the EU VAT territory,
+raises under ``"integration"`` exactly the obstacle it raises under
+``"facturino"``. A B2C sale to a consumer of another member state — an
+electronically supplied service (art. 58) or an intra-EU distance sale of goods
+(art. 33(a)) — traverses the same coverage, the same EUR 10,000 threshold, the
+same option, the same evidence and the same declarative mechanism whichever
+source concluded the VAT. Where ``"facturino"`` produces the rate,
+``"integration"`` compares the supplied one to the legal result, at BOTH places
+the rule can settle: equal means final, a category no covered B2C supply can
+carry or a contradicted ``place_of_supply`` answers
+``integration_vat_incoherent``, and a rate neither the destination standard rate
+nor the published bands of the seller's own territory confirm leaves the decision
+non-final with ``eu_b2c_rate_supplied_mismatch`` — which at origin asserts no
+foreign tax, the operation being taxed in France. ``goods_movement`` is therefore
+required on a goods line as soon as the buyer is a consumer of another member
+state: that movement decides whether the distance-sale rule applies, and it is
+never assumed.
+
+A decision reached by that rule carries ``euB2cDestination``: the verdict and its
+basis, the threshold figures it was decided on, the declarative mechanism and the
+rate entry — registry version, source, verification date, period and region — so
+the position can be audited years later without replaying the engine. It is
+``None`` on every operation the rule does not reach.
 """
 
 from __future__ import annotations
@@ -155,6 +190,8 @@ class TaxDecisions:
                 supplied VAT: ``vat_rate`` (integer centi-percent),
                 ``vat_code`` (S, Z, E, AE, K, G or O) and, when the rate is
                 zero, the ``vatex_code`` and ``place_of_supply`` justifying it.
+                ``place_of_supply`` is also required as soon as the buyer is
+                established in a French overseas collectivity or the TAAF.
             location_evidence: Territorial signals — a country and, where the
                 territory needs one, a postal code. Never an IP address, a PSP
                 payload or bank account details.
