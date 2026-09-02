@@ -91,6 +91,7 @@ from .resources.companies import AsyncCompanies, Companies
 from .resources.credit_notes import AsyncCreditNotes, CreditNotes
 from .resources.customers import AsyncCustomers, Customers
 from .resources.ereporting import AsyncEreporting, Ereporting
+from .resources.eu_threshold_ledgers import AsyncEuThresholdLedgers, EuThresholdLedgers
 from .resources.events import AsyncEvents, Events
 from .resources.exports import AsyncExports, Exports
 from .resources.health import AsyncHealth, Health
@@ -105,7 +106,6 @@ from .resources.reference import AsyncReference, Reference
 from .resources.reporting import AsyncReporting, Reporting
 from .resources.sandbox import AsyncSandbox, Sandbox
 from .resources.tax_decisions import AsyncTaxDecisions, TaxDecisions
-from .resources.eu_threshold_ledgers import AsyncEuThresholdLedgers, EuThresholdLedgers
 from .resources.usage import AsyncUsage, Usage
 from .resources.validate import AsyncValidate, Validate
 from .resources.webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
