@@ -18,6 +18,7 @@ from facturino._errors import (
     PlanLimitError,
     RateLimitError,
     ServerError,
+    ValidationError,
 )
 
 API_KEY = "fac_test_abc123def456ghi789"
@@ -122,6 +123,58 @@ class TestHeaders:
 
 
 class TestErrorHandling:
+    @respx.mock
+    def test_issues_expose_the_detailed_reasons_of_a_refusal(self):
+        """A refusal keeps one main code; `issues` says which field to fix."""
+        respx.get(f"{BASE}/v1/invoices").mock(
+            return_value=httpx.Response(422, json={
+                "error": {
+                    "type": "validation_error",
+                    "code": "validation_error",
+                    "message": "Buyer territory could not be resolved.",
+                    "param": "customerId",
+                    "issues": [
+                        {
+                            "code": "invalid_postal_code",
+                            "param": "customer.address.postalCode",
+                            "message": "Buyer territory could not be resolved.",
+                        }
+                    ],
+                }
+            })
+        )
+
+        http = SyncHttpClient(API_KEY, max_retries=0)
+        with pytest.raises(ValidationError) as exc_info:
+            http.get("/v1/invoices")
+        err = exc_info.value
+        # The main code is unchanged: it stays the value to branch on.
+        assert err.code == "validation_error"
+        assert err.param == "customerId"
+        assert err.issues == [
+            {
+                "code": "invalid_postal_code",
+                "param": "customer.address.postalCode",
+                "message": "Buyer territory could not be resolved.",
+            }
+        ]
+        http.close()
+
+    @respx.mock
+    def test_issues_is_an_empty_list_when_the_refusal_has_no_detail(self):
+        """Reading `issues` never needs a None check."""
+        respx.get(f"{BASE}/v1/invoices").mock(
+            return_value=httpx.Response(404, json={
+                "error": {"type": "not_found_error", "code": "not_found", "message": "No such invoice"}
+            })
+        )
+
+        http = SyncHttpClient(API_KEY, max_retries=0)
+        with pytest.raises(NotFoundError) as exc_info:
+            http.get("/v1/invoices")
+        assert exc_info.value.issues == []
+        http.close()
+
     @respx.mock
     def test_401_raises_authentication_error(self):
         respx.get(f"{BASE}/v1/invoices").mock(

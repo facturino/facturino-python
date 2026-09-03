@@ -41,6 +41,11 @@ class ApiError(FacturinoError):
         doc_url: Link to relevant documentation.
         request_id: Unique identifier for the request.
         hint: Human-readable suggestion for fixing the error.
+        issues: Detailed reasons behind this one refusal, as a list of
+            ``{"code", "param", "message"}`` mappings. Empty when the API sent
+            none, so reading it never needs a ``None`` check. ``code`` stays
+            the value to branch on; each entry adds a more precise code and,
+            when it is certain, the field in cause.
         headers: HTTP response headers.
         body: Raw parsed response body.
     """
@@ -56,6 +61,7 @@ class ApiError(FacturinoError):
         doc_url: str | None = None,
         request_id: str | None = None,
         hint: str | None = None,
+        issues: list[dict[str, Any]] | None = None,
         headers: dict[str, str] | None = None,
         body: dict[str, Any] | None = None,
     ) -> None:
@@ -67,6 +73,7 @@ class ApiError(FacturinoError):
         self.doc_url = doc_url
         self.request_id = request_id
         self.hint = hint
+        self.issues = issues or []
         self.headers = headers or {}
         self.body = body
 
@@ -92,6 +99,8 @@ class ApiError(FacturinoError):
         doc_url = error_data.get("doc_url")
         request_id = error_data.get("request_id")
         hint = error_data.get("hint")
+        # Optional and additive: absent on a refusal that carries no detail.
+        issues = error_data.get("issues")
 
         # Select the most specific error class
         error_cls: type[ApiError]
@@ -125,6 +134,7 @@ class ApiError(FacturinoError):
             doc_url=doc_url,
             request_id=request_id,
             hint=hint,
+            issues=issues,
             headers=headers,
             body=body,
         )
