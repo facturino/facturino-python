@@ -4,6 +4,19 @@ All notable changes to the `facturino` Python SDK are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.0] - 2026-09-04
+
+### Added
+- `invoices.finalize(invoice_id, payment=...)` (sync and async) — an optional
+  collection applied in the SAME transaction as the numbering, so an invoice
+  already paid before issuance is ISSUED settled: the original PDF and Factur-X
+  are rendered on a settled document. `payment` is the very object
+  `payments.create()` takes (integer centimes, `paid_at` alias accepted), and
+  the resulting payment is indistinguishable from one recorded afterwards. All
+  or nothing: a collection beyond the amount due is refused
+  (`422 payment_exceeds_amount_due`) and the invoice stays a draft. Calling
+  `finalize(invoice_id)` without a payment is unchanged.
+
 ## [2.2.0] - 2026-09-03
 
 ### Added

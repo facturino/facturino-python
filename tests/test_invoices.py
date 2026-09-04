@@ -230,6 +230,46 @@ class TestBindTaxDecision:
         assert finalized["id"] == "inv_converted"
         assert finalized["number"] == "FAC-00001"
 
+    @respx.mock
+    def test_finalize_sends_no_body_without_a_collection(self, client):
+        route = respx.post(f"{BASE}/v1/invoices/inv_1/finalize").mock(
+            return_value=httpx.Response(200, json={"id": "inv_1", "status": "finalized"})
+        )
+
+        client.invoices.finalize("inv_1")
+
+        assert route.calls[0].request.content in (b"", b"null")
+
+    @respx.mock
+    def test_finalize_issues_an_already_collected_invoice_as_settled(self, client):
+        route = respx.post(f"{BASE}/v1/invoices/inv_1/finalize").mock(
+            return_value=httpx.Response(
+                200,
+                json={"id": "inv_1", "status": "paid", "number": "FAC-00001"},
+            )
+        )
+
+        result = client.invoices.finalize(
+            "inv_1",
+            payment={
+                "amount": 120000,
+                "method": "card",
+                "reference": "ch_3Kj9aLZ",
+                # snake_case alias, exactly as payments.create accepts it
+                "paid_at": "2026-05-10T12:00:00.000Z",
+            },
+        )
+
+        assert result["status"] == "paid"
+        assert json.loads(route.calls[0].request.content) == {
+            "payment": {
+                "amount": 120000,
+                "method": "card",
+                "reference": "ch_3Kj9aLZ",
+                "paidAt": "2026-05-10T12:00:00.000Z",
+            }
+        }
+
     def test_refuses_locally_without_a_decision(self, client):
         with pytest.raises(ValueError, match="taxDecisionId"):
             client.invoices.bind_tax_decision(

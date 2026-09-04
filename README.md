@@ -64,7 +64,7 @@ invoice = client.invoices.create(
 # 4. Choose your collection flow — see the two variants below.
 ```
 
-**Immediate collection** — capture the decided amount, verify, then finalize:
+**Immediate collection** — capture the decided amount, verify, then finalize WITH the collection:
 
 ```python
 # Capture exactly amountToCharge through your payment provider, payment
@@ -83,17 +83,20 @@ source = client.tax_decisions.retrieve(decision["id"])
 assert settlement["amount"] == source["amountToCharge"], "amount mismatch"
 assert settlement["currency"] == source["currency"], "currency mismatch"
 
-client.invoices.finalize(invoice["id"])
-
-# Record the REAL payment — its real date, method and the settlement's
+# Finalize AND record the REAL payment in one call: the numbering and the
+# collection land in the same transaction, so the issued original (PDF and
+# Factur-X) is rendered on a settled invoice. `payment` is the very mapping
+# `payments.create()` takes — its real date, method and the settlement's
 # financial reference (never the decision id).
-client.payments.create(
+client.invoices.finalize(
     invoice["id"],
-    amount=settlement["amount"],
-    # transfer, card, check, cash, direct_debit, sepa, paypal or other
-    method=settlement["method"],
-    reference=settlement["reference"],
-    paidAt=settlement["paidAt"],
+    payment={
+        "amount": settlement["amount"],
+        # transfer, card, check, cash, direct_debit, sepa, paypal or other
+        "method": settlement["method"],
+        "reference": settlement["reference"],
+        "paidAt": settlement["paidAt"],
+    },
 )
 
 # Send to the platform only on the channel the FROZEN decision states.

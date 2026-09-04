@@ -51,6 +51,20 @@ def _build_invoice_create_body(params: dict[str, Any]) -> dict[str, Any]:
 
 
 
+def _build_finalize_body(payment: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Body of a finalization: absent, or the collection received before issuance.
+
+    ``paid_at`` is accepted as a snake_case alias, exactly as
+    :meth:`Payments.create` accepts it — the two surfaces take the same object.
+    """
+    if payment is None:
+        return None
+    body = dict(payment)
+    if "paid_at" in body and "paidAt" not in body:
+        body["paidAt"] = body.pop("paid_at")
+    return {"payment": body}
+
+
 def _build_bind_decision_body(params: dict[str, Any]) -> dict[str, Any]:
     """Normalize aliases and enforce the binding contract locally.
 
@@ -199,9 +213,31 @@ class Invoices:
         )
         return resp.json()  # type: ignore[no-any-return]
 
-    def finalize(self, invoice_id: str) -> dict[str, Any]:
-        """Finalize an invoice: assign number, lock for editing, generate legal mentions."""
-        resp = self._client.post(f"/v1/invoices/{invoice_id}/finalize")
+    def finalize(
+        self,
+        invoice_id: str,
+        payment: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Finalize an invoice: assign number, lock for editing, generate legal mentions.
+
+        Pass ``payment`` when the invoice was already collected BEFORE issuance:
+        numbering and collection are applied in the SAME transaction, so the
+        original PDF and Factur-X are rendered on a settled invoice and say so.
+        ``payment`` is the very object :meth:`Payments.create` takes (amount in
+        integer centimes), and ``paid_at`` is accepted as a snake_case alias.
+
+        All or nothing: a collection beyond the amount due is refused
+        (``422 payment_exceeds_amount_due``) and the invoice stays a draft — no
+        number is burned. Without ``payment``, the behaviour is unchanged.
+
+        Args:
+            invoice_id: The draft to issue.
+            payment: Optional collection received before issuance.
+        """
+        resp = self._client.post(
+            f"/v1/invoices/{invoice_id}/finalize",
+            json=_build_finalize_body(payment),
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     def email(self, invoice_id: str, **params: Any) -> dict[str, Any]:
@@ -440,9 +476,20 @@ class AsyncInvoices:
         )
         return resp.json()  # type: ignore[no-any-return]
 
-    async def finalize(self, invoice_id: str) -> dict[str, Any]:
-        """Assign number, lock for editing, generate legal mentions."""
-        resp = await self._client.post(f"/v1/invoices/{invoice_id}/finalize")
+    async def finalize(
+        self,
+        invoice_id: str,
+        payment: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Assign number, lock for editing, generate legal mentions.
+
+        Async twin of :meth:`Invoices.finalize`; same contract, ``payment``
+        included.
+        """
+        resp = await self._client.post(
+            f"/v1/invoices/{invoice_id}/finalize",
+            json=_build_finalize_body(payment),
+        )
         return resp.json()  # type: ignore[no-any-return]
 
     async def email(self, invoice_id: str, **params: Any) -> dict[str, Any]:
