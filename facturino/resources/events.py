@@ -25,8 +25,10 @@ class Events:
         resp = self._client.get(f"/v1/events/{event_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    def retry(self, event_id: str) -> dict[str, Any]:
-        resp = self._client.post(f"/v1/events/{event_id}/retry")
+    def retry(self, event_id: str, endpoint_id: str | None = None) -> dict[str, Any]:
+        """Retry the delivery; with ``endpoint_id`` replay to that endpoint even if delivered."""
+        body = {"endpointId": endpoint_id} if endpoint_id else None
+        resp = self._client.post(f"/v1/events/{event_id}/retry", json=body)
         return resp.json()  # type: ignore[no-any-return]
 
 
@@ -47,6 +49,8 @@ class AsyncEvents:
         resp = await self._client.get(f"/v1/events/{event_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    async def retry(self, event_id: str) -> dict[str, Any]:
-        resp = await self._client.post(f"/v1/events/{event_id}/retry")
+    async def retry(self, event_id: str, endpoint_id: str | None = None) -> dict[str, Any]:
+        """Retry the delivery; with ``endpoint_id`` replay to that endpoint even if delivered."""
+        body = {"endpointId": endpoint_id} if endpoint_id else None
+        resp = await self._client.post(f"/v1/events/{event_id}/retry", json=body)
         return resp.json()  # type: ignore[no-any-return]

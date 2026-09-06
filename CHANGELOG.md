@@ -4,6 +4,14 @@ All notable changes to the `facturino` Python SDK are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.4.0] - 2026-09-06
+
+### Added
+- `events.retry(event_id, endpoint_id=...)` replays an event to one endpoint,
+  even if already delivered. Every event's `data` now carries the document
+  fields `number`, `documentStatus`, `transmissionStatus`, `transmissionDetail`,
+  `paymentStatus` and `metadata`.
+
 ## [2.3.1] - 2026-09-06
 
 ### Changed
