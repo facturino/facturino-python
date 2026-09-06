@@ -4,6 +4,14 @@ All notable changes to the `facturino` Python SDK are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.1] - 2026-09-06
+
+### Changed
+- `ereporting.create_declaration` documents the eight declaration types
+  (`domestic_b2b` and the four `payment_*` types) and the optional per-line
+  fields, including `documentType` (`380` / `381`), `originalInvoiceNumber` and
+  `originalInvoiceDate` for a credit note.
+
 ## [2.3.0] - 2026-09-04
 
 ### Added

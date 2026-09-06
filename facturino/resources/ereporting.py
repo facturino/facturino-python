@@ -29,10 +29,17 @@ class Ereporting:
         """Create a new e-reporting declaration.
 
         Args:
-            type: Declaration type (b2c, international, intra_eu, payment).
+            type: Declaration type — transactions: b2c, international, intra_eu,
+                  domestic_b2b; payments: payment_b2c, payment_international,
+                  payment_intra_eu, payment_domestic_b2b.
             period: Period string (e.g. "2026-01").
             lines: List of reporting lines with category, amount, vatRate, vatAmount
-                   (all in integer centimes / centipercent).
+                   (all in integer centimes / centipercent). Optional per line:
+                   date, issueDate, invoiceNumber, country, partnerVat, partnerName,
+                   vatCategoryCode, vatexCode, count, documentType ("380" invoice,
+                   "381" credit note), originalInvoiceNumber and originalInvoiceDate
+                   (the invoice a credit note corrects — both are required to
+                   transmit a unit credit note, DGFiP G1.32).
         """
         body = dict(params)
         for line in body.get("lines", []):
@@ -73,10 +80,17 @@ class AsyncEreporting:
         """Create a new e-reporting declaration.
 
         Args:
-            type: Declaration type (b2c, international, intra_eu, payment).
+            type: Declaration type — transactions: b2c, international, intra_eu,
+                  domestic_b2b; payments: payment_b2c, payment_international,
+                  payment_intra_eu, payment_domestic_b2b.
             period: Period string (e.g. "2026-01").
             lines: List of reporting lines with category, amount, vatRate, vatAmount
-                   (all in integer centimes / centipercent).
+                   (all in integer centimes / centipercent). Optional per line:
+                   date, issueDate, invoiceNumber, country, partnerVat, partnerName,
+                   vatCategoryCode, vatexCode, count, documentType ("380" invoice,
+                   "381" credit note), originalInvoiceNumber and originalInvoiceDate
+                   (the invoice a credit note corrects — both are required to
+                   transmit a unit credit note, DGFiP G1.32).
         """
         body = dict(params)
         for line in body.get("lines", []):
