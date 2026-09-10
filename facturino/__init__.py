@@ -198,9 +198,7 @@ class Client:
         retry_budget: float = 60.0,
     ) -> None:
         if not api_key:
-            raise FacturinoError(
-                "API key is required. Pass your key as: facturino.Client('fac_test_xxx')"
-            )
+            raise FacturinoError("API key is required. Pass your key as: facturino.Client('fac_test_xxx')")
 
         self._http = SyncHttpClient(
             api_key,
@@ -282,9 +280,7 @@ class AsyncClient:
         retry_budget: float = 60.0,
     ) -> None:
         if not api_key:
-            raise FacturinoError(
-                "API key is required. Pass your key as: facturino.AsyncClient('fac_test_xxx')"
-            )
+            raise FacturinoError("API key is required. Pass your key as: facturino.AsyncClient('fac_test_xxx')")
 
         self._http = AsyncHttpClient(
             api_key,

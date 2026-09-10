@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
 
+from ._types import PaymentCollectionStatus
+
 
 class InvoiceWebhookData(TypedDict, total=False):
     id: str
@@ -117,6 +119,8 @@ class PaymentCreatedWebhookData(TypedDict, total=False):
 
 
 class PaymentReceivedWebhookData(TypedDict, total=False):
+    paymentId: str | None
+    fr212: PaymentCollectionStatus | None
     id: str
     object: Literal["invoice"]
     status: str

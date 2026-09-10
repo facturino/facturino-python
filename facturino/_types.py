@@ -394,6 +394,7 @@ class InvoiceSubmissionArtefact(TypedDict, total=False):
     generatedAt: str
     correctedRules: list[str]
     routingIdentifier: str
+    sellerRoutingIdentifier: str
 
 
 class InvoicePreviousSubmission(TypedDict, total=False):
@@ -432,6 +433,7 @@ class InvoiceEinvoicing(TypedDict, total=False):
     rejectionSource: PaRejectionSource | None
     rejectionNote: str | None
     routingIdentifier: str | None
+    senderRoutingIdentifier: str
     buyerReachableAt: str | None
     directoryCheckedAt: str | None
     ereportingPaymentId: str | None
@@ -651,7 +653,8 @@ class WebhookEventData(TypedDict, total=False):
     paStatus: str
     paInvoiceId: str | None
     invoiceId: str
-    paymentId: str
+    paymentId: str | None
+    fr212: PaymentCollectionStatus | None
     method: str
     pa_invoice_id: str
     sender_siret: str

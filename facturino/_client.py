@@ -18,7 +18,7 @@ import httpx
 from ._errors import ApiError, FacturinoError
 
 # SDK metadata
-VERSION = "2.7.0"
+VERSION = "2.8.0"
 API_VERSION = "2026-09-01"
 DEFAULT_BASE_URL = "https://facturino.com/api"
 DEFAULT_TIMEOUT = 30.0
@@ -64,7 +64,7 @@ def _get_retry_delay(attempt: int, response: httpx.Response | None = None) -> fl
                 except (ValueError, TypeError, OverflowError):
                     pass
 
-    delay = INITIAL_RETRY_DELAY * (2 ** attempt)
+    delay = INITIAL_RETRY_DELAY * (2**attempt)
     return min(float(delay), MAX_RETRY_DELAY)
 
 
