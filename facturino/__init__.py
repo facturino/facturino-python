@@ -83,6 +83,24 @@ from ._errors import (
     ValidationError,
 )
 from ._pagination import AsyncPage, SyncPage
+from ._types import (
+    BuyerNatureWarning,
+    CreditNote,
+    CreditNoteEinvoicing,
+    Customer,
+    EventRetryResult,
+    Invoice,
+    InvoiceEinvoicing,
+    InvoicePreviousSubmission,
+    InvoiceSubmissionArtefact,
+    PaRejectionCategory,
+    PaRejectionSource,
+    Payment,
+    PaymentCollectionStatus,
+    TaxDecision,
+    WebhookEvent,
+    WebhookEventData,
+)
 from ._webhooks import Webhook
 from .resources.account import Account, AsyncAccount
 from .resources.archives import Archives, AsyncArchives
@@ -109,25 +127,6 @@ from .resources.tax_decisions import AsyncTaxDecisions, TaxDecisions
 from .resources.usage import AsyncUsage, Usage
 from .resources.validate import AsyncValidate, Validate
 from .resources.webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
-
-from ._types import (
-    Invoice,
-    InvoiceEinvoicing,
-    InvoiceSubmissionArtefact,
-    InvoicePreviousSubmission,
-    CreditNote,
-    CreditNoteEinvoicing,
-    Payment,
-    PaymentCollectionStatus,
-    Customer,
-    TaxDecision,
-    BuyerNatureWarning,
-    PaRejectionCategory,
-    PaRejectionSource,
-    WebhookEvent,
-    WebhookEventData,
-    EventRetryResult,
-)
 
 __version__ = VERSION
 

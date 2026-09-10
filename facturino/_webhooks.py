@@ -19,7 +19,6 @@ import hashlib
 import hmac
 import json
 import time
-from typing import Any
 
 from ._errors import SignatureVerificationError
 from ._types import WebhookEvent

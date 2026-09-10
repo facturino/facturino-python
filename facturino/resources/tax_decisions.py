@@ -66,9 +66,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .._types import TaxDecision
-
 from .._client import AsyncHttpClient, SyncHttpClient
+from .._types import TaxDecision
 
 _PATH = "/v1/tax-decisions"
 

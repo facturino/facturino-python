@@ -1,6 +1,9 @@
 """Optional payload projections, keyed by the event type; runtime dictionaries retain every field."""
+
 from __future__ import annotations
+
 from typing import Any, Literal, TypedDict
+
 
 class InvoiceWebhookData(TypedDict, total=False):
     id: str
@@ -10,15 +13,33 @@ class InvoiceWebhookData(TypedDict, total=False):
     livemode: bool
     number: str | None
     documentStatus: Literal["draft", "finalized", "cancelled"]
-    transmissionStatus: Literal["not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"]
+    transmissionStatus: Literal[
+        "not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"
+    ]
     transmissionDetail: Literal["available", "received", "suspended", "refused"] | None
     paymentStatus: Literal["unpaid", "partially_paid", "paid", "partially_refunded", "refunded"]
     paErrorCode: str | None
     rejectionReason: str | None
-    rejectionCategory: Literal["buyer_not_in_directory", "addressing_error", "other", "format_invalid", "semantic_error", "duplicate", "platform_auth", "platform_unavailable", "refused_by_buyer", "suspended", "unknown"] | None
+    rejectionCategory: (
+        Literal[
+            "buyer_not_in_directory",
+            "addressing_error",
+            "other",
+            "format_invalid",
+            "semantic_error",
+            "duplicate",
+            "platform_auth",
+            "platform_unavailable",
+            "refused_by_buyer",
+            "suspended",
+            "unknown",
+        ]
+        | None
+    )
     rejectionCode: str | None
     rejectionSource: Literal["platform", "buyer", "facturino"] | None
     metadata: dict[str, Any]
+
 
 class IncomingInvoiceWebhookData(TypedDict, total=False):
     id: str
@@ -31,6 +52,7 @@ class IncomingInvoiceWebhookData(TypedDict, total=False):
     total_tva: str
     total_ttc: str
 
+
 class QuoteWebhookData(TypedDict, total=False):
     id: str
     object: Literal["quote"]
@@ -39,6 +61,7 @@ class QuoteWebhookData(TypedDict, total=False):
     livemode: bool
     number: str | None
     metadata: dict[str, Any]
+
 
 class CreditNoteWebhookData(TypedDict, total=False):
     paStatus: str
@@ -50,28 +73,48 @@ class CreditNoteWebhookData(TypedDict, total=False):
     livemode: bool
     number: str | None
     documentStatus: Literal["draft", "finalized", "cancelled"]
-    transmissionStatus: Literal["not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"]
+    transmissionStatus: Literal[
+        "not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"
+    ]
     transmissionDetail: Literal["available", "received", "suspended", "refused"] | None
     paymentStatus: Literal["unpaid", "partially_paid", "paid", "partially_refunded", "refunded"]
     paErrorCode: str | None
     rejectionReason: str | None
-    rejectionCategory: Literal["buyer_not_in_directory", "addressing_error", "other", "format_invalid", "semantic_error", "duplicate", "platform_auth", "platform_unavailable", "refused_by_buyer", "suspended", "unknown"] | None
+    rejectionCategory: (
+        Literal[
+            "buyer_not_in_directory",
+            "addressing_error",
+            "other",
+            "format_invalid",
+            "semantic_error",
+            "duplicate",
+            "platform_auth",
+            "platform_unavailable",
+            "refused_by_buyer",
+            "suspended",
+            "unknown",
+        ]
+        | None
+    )
     rejectionCode: str | None
     rejectionSource: Literal["platform", "buyer", "facturino"] | None
     metadata: dict[str, Any]
     relatedInvoiceId: str | None
     relatedInvoiceNumber: str | None
 
+
 class CustomerWebhookData(TypedDict, total=False):
     id: str
     object: Literal["customer"]
     livemode: bool
+
 
 class PaymentCreatedWebhookData(TypedDict, total=False):
     invoiceId: str
     paymentId: str
     amount: str
     method: str
+
 
 class PaymentReceivedWebhookData(TypedDict, total=False):
     id: str
@@ -81,12 +124,29 @@ class PaymentReceivedWebhookData(TypedDict, total=False):
     livemode: bool
     number: str | None
     documentStatus: Literal["draft", "finalized", "cancelled"]
-    transmissionStatus: Literal["not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"]
+    transmissionStatus: Literal[
+        "not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"
+    ]
     transmissionDetail: Literal["available", "received", "suspended", "refused"] | None
     paymentStatus: Literal["unpaid", "partially_paid", "paid", "partially_refunded", "refunded"]
     paErrorCode: str | None
     rejectionReason: str | None
-    rejectionCategory: Literal["buyer_not_in_directory", "addressing_error", "other", "format_invalid", "semantic_error", "duplicate", "platform_auth", "platform_unavailable", "refused_by_buyer", "suspended", "unknown"] | None
+    rejectionCategory: (
+        Literal[
+            "buyer_not_in_directory",
+            "addressing_error",
+            "other",
+            "format_invalid",
+            "semantic_error",
+            "duplicate",
+            "platform_auth",
+            "platform_unavailable",
+            "refused_by_buyer",
+            "suspended",
+            "unknown",
+        ]
+        | None
+    )
     rejectionCode: str | None
     rejectionSource: Literal["platform", "buyer", "facturino"] | None
     metadata: dict[str, Any]
@@ -96,6 +156,7 @@ class PaymentReceivedWebhookData(TypedDict, total=False):
     total: str
     amountDue: str
 
+
 class EreportingWebhookData(TypedDict, total=False):
     id: str
     object: Literal["ereporting"]
@@ -104,21 +165,25 @@ class EreportingWebhookData(TypedDict, total=False):
     period: str | None
     attempt: int
 
+
 class RecurringGeneratedWebhookData(TypedDict, total=False):
     id: str
     object: Literal["invoice"]
     recurringInvoiceId: str
     livemode: bool
 
+
 class RecurringFailedWebhookData(TypedDict, total=False):
     id: str
     object: Literal["recurring_invoice"]
     error: str
 
+
 class ExportWebhookData(TypedDict, total=False):
     id: str
     object: Literal["export"]
     count: int
+
 
 class SubscriptionWebhookData(TypedDict, total=False):
     plan: str
@@ -126,6 +191,7 @@ class SubscriptionWebhookData(TypedDict, total=False):
     stripeSubscriptionId: str
     pausedUntil: str | None
     reason: str
+
 
 EVENT_DATA_TYPES = {
     "invoice.created": InvoiceWebhookData,

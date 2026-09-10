@@ -9,18 +9,21 @@ import httpx
 import pytest
 import respx
 
-from facturino._client import SyncHttpClient, AsyncHttpClient, _get_retry_delay
+from facturino._client import AsyncHttpClient, SyncHttpClient, _get_retry_delay
 from facturino._errors import ApiError, FacturinoError
 
 KEY = "fac_test_local"
 ERROR = {"error": {"type": "rate_limit_error", "code": "rate_limit_exceeded", "message": "Slow down"}}
 
+
 @contextmanager
 def cut_response_server():
     state = {"keys": [], "movements": {}}
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
+
         def do_POST(self):
             self.rfile.read(int(self.headers.get("Content-Length", "0")))
             key = self.headers.get("Idempotency-Key", "")
@@ -36,6 +39,7 @@ def cut_response_server():
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -67,9 +71,12 @@ async def test_async_real_server_applies_once_after_response_loss():
 
 @respx.mock
 def test_retry_after_long_wait_is_exact():
-    route = respx.post("https://facturino.com/api/payments").mock(side_effect=[
-        httpx.Response(429, json=ERROR, headers={"Retry-After": "90"}), httpx.Response(200, json={}),
-    ])
+    route = respx.post("https://facturino.com/api/payments").mock(
+        side_effect=[
+            httpx.Response(429, json=ERROR, headers={"Retry-After": "90"}),
+            httpx.Response(200, json={}),
+        ]
+    )
     with SyncHttpClient(KEY, retry_budget=100) as client, patch("facturino._client.time.sleep") as sleep:
         assert client.post("/payments", json={}).status_code == 200
         sleep.assert_called_once_with(90.0)
@@ -78,9 +85,12 @@ def test_retry_after_long_wait_is_exact():
 
 @respx.mock
 async def test_async_retry_after_long_wait_is_exact():
-    respx.post("https://facturino.com/api/payments").mock(side_effect=[
-        httpx.Response(429, json=ERROR, headers={"Retry-After": "90"}), httpx.Response(200, json={}),
-    ])
+    respx.post("https://facturino.com/api/payments").mock(
+        side_effect=[
+            httpx.Response(429, json=ERROR, headers={"Retry-After": "90"}),
+            httpx.Response(200, json={}),
+        ]
+    )
     async with AsyncHttpClient(KEY, retry_budget=100) as client:
         with patch("facturino._client.asyncio.sleep", new_callable=AsyncMock) as sleep:
             await client.post("/payments", json={})
@@ -90,8 +100,13 @@ async def test_async_retry_after_long_wait_is_exact():
 @pytest.mark.parametrize("async_client", [False, True])
 @respx.mock
 async def test_retry_after_budget_returns_original_429(async_client):
-    route = respx.post("https://facturino.com/api/payments").mock(return_value=httpx.Response(429, json=ERROR, headers={"Retry-After": "90"}))
-    with patch("facturino._client.time.sleep") as sync_sleep, patch("facturino._client.asyncio.sleep", new_callable=AsyncMock) as async_sleep:
+    route = respx.post("https://facturino.com/api/payments").mock(
+        return_value=httpx.Response(429, json=ERROR, headers={"Retry-After": "90"})
+    )
+    with (
+        patch("facturino._client.time.sleep") as sync_sleep,
+        patch("facturino._client.asyncio.sleep", new_callable=AsyncMock) as async_sleep,
+    ):
         with pytest.raises(ApiError) as error:
             if async_client:
                 async with AsyncHttpClient(KEY) as client:
@@ -122,7 +137,9 @@ async def test_unkeyed_posts_never_retry(async_client):
 
 @respx.mock
 def test_header_key_is_preserved_with_generation_disabled():
-    route = respx.post("https://facturino.com/api/payments").mock(side_effect=[httpx.Response(429, json=ERROR, headers={"Retry-After": "0"}), httpx.Response(200, json={})])
+    route = respx.post("https://facturino.com/api/payments").mock(
+        side_effect=[httpx.Response(429, json=ERROR, headers={"Retry-After": "0"}), httpx.Response(200, json={})]
+    )
     with SyncHttpClient(KEY, auto_idempotency=False) as client:
         client.post("/payments", json={}, headers={"Idempotency-Key": "caller-key"})
     assert [call.request.headers["idempotency-key"] for call in route.calls] == ["caller-key", "caller-key"]

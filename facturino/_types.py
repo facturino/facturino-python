@@ -13,6 +13,7 @@ from typing import Any, Literal, TypedDict
 # Common
 # ---------------------------------------------------------------------------
 
+
 class Address(TypedDict, total=False):
     line1: str
     line2: str
@@ -68,8 +69,10 @@ class LifecycleEntry(TypedDict, total=False):
 # Pagination
 # ---------------------------------------------------------------------------
 
+
 class ListParams(TypedDict, total=False):
     """Common query parameters for list endpoints."""
+
     limit: int
     starting_after: str
     status: str
@@ -78,6 +81,7 @@ class ListParams(TypedDict, total=False):
 
 class PaginatedResponse(TypedDict):
     """Shape of all paginated list responses."""
+
     object: str
     url: str
     data: list[dict[str, Any]]
@@ -88,6 +92,7 @@ class PaginatedResponse(TypedDict):
 # ---------------------------------------------------------------------------
 # Invoices
 # ---------------------------------------------------------------------------
+
 
 class InvoiceCreateParams(TypedDict, total=False):
     customer: str  # customer ID (mapped to customerId)
@@ -113,6 +118,7 @@ class InvoiceUpdateParams(TypedDict, total=False):
 # Payments
 # ---------------------------------------------------------------------------
 
+
 class PaymentCreateParams(TypedDict, total=False):
     amount: int  # integer centimes
     method: str
@@ -124,6 +130,7 @@ class PaymentCreateParams(TypedDict, total=False):
 # ---------------------------------------------------------------------------
 # Customers
 # ---------------------------------------------------------------------------
+
 
 class LegalFormInput(TypedDict, total=False):
     """Legal-form input for company/customer create/update.
@@ -186,6 +193,7 @@ class CustomerLookupParams(TypedDict, total=False):
 # Products
 # ---------------------------------------------------------------------------
 
+
 class ProductCreateParams(TypedDict, total=False):
     name: str
     description: str
@@ -217,6 +225,7 @@ class ProductUpdateParams(TypedDict, total=False):
 # Quotes
 # ---------------------------------------------------------------------------
 
+
 class QuoteCreateParams(TypedDict, total=False):
     customer: str
     items: list[LineItem]
@@ -235,6 +244,7 @@ class QuoteUpdateParams(TypedDict, total=False):
 # ---------------------------------------------------------------------------
 # Credit Notes
 # ---------------------------------------------------------------------------
+
 
 class CreditNoteCreateParams(TypedDict, total=False):
     customer: str
@@ -260,6 +270,7 @@ class CreditNoteUpdateParams(TypedDict, total=False):
 # Webhook Endpoints
 # ---------------------------------------------------------------------------
 
+
 class WebhookEndpointCreateParams(TypedDict, total=False):
     url: str
     events: list[str]
@@ -276,6 +287,7 @@ class WebhookEndpointUpdateParams(TypedDict, total=False):
 # ---------------------------------------------------------------------------
 # Recurring Invoices
 # ---------------------------------------------------------------------------
+
 
 class RecurringInvoiceCreateParams(TypedDict, total=False):
     customerId: str
@@ -315,6 +327,7 @@ class RecurringInvoiceUpdateParams(TypedDict, total=False):
 # Exports
 # ---------------------------------------------------------------------------
 
+
 class FecExportParams(TypedDict, total=False):
     period_start: str
     period_end: str
@@ -331,6 +344,7 @@ class InvoiceExportParams(TypedDict, total=False):
 # ---------------------------------------------------------------------------
 # E-Reporting
 # ---------------------------------------------------------------------------
+
 
 class EreportingLine(TypedDict, total=False):
     category: str
@@ -351,13 +365,26 @@ class EreportingCreateParams(TypedDict, total=False):
 # Sandbox
 # ---------------------------------------------------------------------------
 
+
 class SimulateStatusParams(TypedDict, total=False):
     status: str
 
 
 # Response models keep additive/legacy fields optional. Runtime values stay dicts.
 
-PaRejectionCategory = Literal["buyer_not_in_directory", "addressing_error", "other", "format_invalid", "semantic_error", "duplicate", "platform_auth", "platform_unavailable", "refused_by_buyer", "suspended", "unknown"]
+PaRejectionCategory = Literal[
+    "buyer_not_in_directory",
+    "addressing_error",
+    "other",
+    "format_invalid",
+    "semantic_error",
+    "duplicate",
+    "platform_auth",
+    "platform_unavailable",
+    "refused_by_buyer",
+    "suspended",
+    "unknown",
+]
 PaRejectionSource = Literal["platform", "buyer", "facturino"]
 
 
@@ -454,7 +481,22 @@ class Invoice(TypedDict, total=False):
     id: str
     object: str
     type: Literal["standard", "deposit", "corrective", "self_billing"]
-    status: Literal["draft", "finalized", "sending", "deposited", "transmitted", "rejected", "available", "received", "approved", "refused", "suspended", "partially_paid", "paid", "overdue"]
+    status: Literal[
+        "draft",
+        "finalized",
+        "sending",
+        "deposited",
+        "transmitted",
+        "rejected",
+        "available",
+        "received",
+        "approved",
+        "refused",
+        "suspended",
+        "partially_paid",
+        "paid",
+        "overdue",
+    ]
     number: str | None
     currency: str
     customer: dict[str, Any]
@@ -472,7 +514,9 @@ class Invoice(TypedDict, total=False):
     commercialDraft: dict[str, Any] | None
     taxSnapshot: dict[str, Any]
     documentStatus: Literal["draft", "finalized", "cancelled"]
-    transmissionStatus: Literal["not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"]
+    transmissionStatus: Literal[
+        "not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"
+    ]
     transmissionDetail: Literal["available", "received", "suspended", "refused"] | None
     paymentStatus: Literal["unpaid", "partially_paid", "paid", "partially_refunded", "refunded"]
     einvoicing: InvoiceEinvoicing
@@ -595,7 +639,9 @@ class CreditNote(TypedDict, total=False):
     taxSource: Literal["facturino", "integration"]
     taxSnapshot: dict[str, Any]
     documentStatus: Literal["draft", "finalized", "cancelled"]
-    transmissionStatus: Literal["not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"]
+    transmissionStatus: Literal[
+        "not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"
+    ]
     transmissionDetail: Literal["available", "received", "suspended", "refused"] | None
     paymentStatus: Literal["unpaid", "partially_paid", "paid", "partially_refunded", "refunded"]
     einvoicing: CreditNoteEinvoicing
@@ -631,7 +677,9 @@ class WebhookEventData(TypedDict, total=False):
     livemode: bool
     number: str | None
     documentStatus: Literal["draft", "finalized", "cancelled"]
-    transmissionStatus: Literal["not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"]
+    transmissionStatus: Literal[
+        "not_applicable", "pending", "sending", "deposited", "transmitted", "approved", "rejected"
+    ]
     transmissionDetail: Literal["available", "received", "suspended", "refused"] | None
     paymentStatus: Literal["unpaid", "partially_paid", "paid", "partially_refunded", "refunded"]
     paErrorCode: str | None

@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import asyncio
 import math
-from email.utils import parsedate_to_datetime
 import time
 import uuid
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
