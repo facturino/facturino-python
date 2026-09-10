@@ -9,6 +9,7 @@ from typing import Any
 
 from .._client import AsyncHttpClient, SyncHttpClient
 from .._pagination import AsyncPage, SyncPage
+from .._types import Payment
 
 
 class Payments:
@@ -17,7 +18,7 @@ class Payments:
     def __init__(self, client: SyncHttpClient) -> None:
         self._client = client
 
-    def create(self, invoice_id: str, **params: Any) -> dict[str, Any]:
+    def create(self, invoice_id: str, **params: Any) -> Payment:
         """Record a payment on an invoice.
 
         Args:
@@ -66,7 +67,7 @@ class AsyncPayments:
     def __init__(self, client: AsyncHttpClient) -> None:
         self._client = client
 
-    async def create(self, invoice_id: str, **params: Any) -> dict[str, Any]:
+    async def create(self, invoice_id: str, **params: Any) -> Payment:
         """Record a payment on an invoice.
 
         Args:

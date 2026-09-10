@@ -110,9 +110,45 @@ from .resources.usage import AsyncUsage, Usage
 from .resources.validate import AsyncValidate, Validate
 from .resources.webhook_endpoints import AsyncWebhookEndpoints, WebhookEndpoints
 
+from ._types import (
+    Invoice,
+    InvoiceEinvoicing,
+    InvoiceSubmissionArtefact,
+    InvoicePreviousSubmission,
+    CreditNote,
+    CreditNoteEinvoicing,
+    Payment,
+    PaymentCollectionStatus,
+    Customer,
+    TaxDecision,
+    BuyerNatureWarning,
+    PaRejectionCategory,
+    PaRejectionSource,
+    WebhookEvent,
+    WebhookEventData,
+    EventRetryResult,
+)
+
 __version__ = VERSION
 
 __all__ = [
+    # Response models
+    "Invoice",
+    "InvoiceEinvoicing",
+    "InvoiceSubmissionArtefact",
+    "InvoicePreviousSubmission",
+    "CreditNote",
+    "CreditNoteEinvoicing",
+    "Payment",
+    "PaymentCollectionStatus",
+    "Customer",
+    "TaxDecision",
+    "BuyerNatureWarning",
+    "PaRejectionCategory",
+    "PaRejectionSource",
+    "WebhookEvent",
+    "WebhookEventData",
+    "EventRetryResult",
     # Clients
     "Client",
     "AsyncClient",
@@ -147,6 +183,9 @@ class Client:
         base_url: API base URL. Defaults to ``https://facturino.com/api``.
         timeout: Request timeout in seconds. Defaults to 30.
         max_retries: Maximum retry attempts on transient failures. Defaults to 3.
+        auto_idempotency: Generate stable POST keys. Defaults to True.
+        retry_budget: Maximum cumulative retry waiting seconds. Defaults to 60.
+            A longer Retry-After returns the original HTTP error without retrying.
     """
 
     def __init__(
@@ -156,6 +195,8 @@ class Client:
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = MAX_RETRIES,
+        auto_idempotency: bool = True,
+        retry_budget: float = 60.0,
     ) -> None:
         if not api_key:
             raise FacturinoError(
@@ -167,6 +208,8 @@ class Client:
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
+            auto_idempotency=auto_idempotency,
+            retry_budget=retry_budget,
         )
 
         # Resource namespaces
@@ -224,6 +267,9 @@ class AsyncClient:
         base_url: API base URL. Defaults to ``https://facturino.com/api``.
         timeout: Request timeout in seconds. Defaults to 30.
         max_retries: Maximum retry attempts on transient failures. Defaults to 3.
+        auto_idempotency: Generate stable POST keys. Defaults to True.
+        retry_budget: Maximum cumulative retry waiting seconds. Defaults to 60.
+            A longer Retry-After returns the original HTTP error without retrying.
     """
 
     def __init__(
@@ -233,6 +279,8 @@ class AsyncClient:
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = MAX_RETRIES,
+        auto_idempotency: bool = True,
+        retry_budget: float = 60.0,
     ) -> None:
         if not api_key:
             raise FacturinoError(
@@ -244,6 +292,8 @@ class AsyncClient:
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
+            auto_idempotency=auto_idempotency,
+            retry_budget=retry_budget,
         )
 
         # Resource namespaces

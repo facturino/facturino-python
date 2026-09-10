@@ -11,6 +11,7 @@ from typing import Any
 
 from .._client import AsyncHttpClient, SyncHttpClient
 from .._pagination import AsyncPage, SyncPage
+from .._types import Invoice
 
 
 def _build_invoice_create_body(params: dict[str, Any]) -> dict[str, Any]:
@@ -102,7 +103,7 @@ class Invoices:
 
     def create(
         self, *, idempotency_key: str | None = None, **params: Any
-    ) -> dict[str, Any]:
+    ) -> Invoice:
         """Create a draft invoice from an immutable tax decision.
 
         Every invoice references the decision that fixed its VAT and its
@@ -151,7 +152,7 @@ class Invoices:
         resp = self._client.get("/v1/invoices", params=params)
         return SyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
-    def get(self, invoice_id: str, **params: Any) -> dict[str, Any]:
+    def get(self, invoice_id: str, **params: Any) -> Invoice:
         """Retrieve an invoice.
 
         Args:
@@ -411,7 +412,7 @@ class AsyncInvoices:
 
     async def create(
         self, *, idempotency_key: str | None = None, **params: Any
-    ) -> dict[str, Any]:
+    ) -> Invoice:
         """Create a draft invoice from an immutable tax decision.
 
         Same contract as the synchronous resource: ``taxDecisionId`` +
@@ -438,7 +439,7 @@ class AsyncInvoices:
         resp = await self._client.get("/v1/invoices", params=params)
         return AsyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
-    async def get(self, invoice_id: str, **params: Any) -> dict[str, Any]:
+    async def get(self, invoice_id: str, **params: Any) -> Invoice:
         """Retrieve an invoice.
 
         Args:

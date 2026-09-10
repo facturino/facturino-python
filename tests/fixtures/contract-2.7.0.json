@@ -1,0 +1,274 @@
+{
+  "invoice": {
+    "id": "inv_00090",
+    "object": "invoice",
+    "number": "FAC2026-00090",
+    "status": "rejected",
+    "documentStatus": "finalized",
+    "transmissionStatus": "rejected",
+    "transmissionDetail": null,
+    "paymentStatus": "unpaid",
+    "type": "standard",
+    "currency": "eur",
+    "customer": {
+      "ref": "cus_example",
+      "snapshot": {
+        "name": "INTEK CENTER",
+        "address": {
+          "line1": "1 rue Exemple",
+          "postalCode": "75001",
+          "city": "Paris",
+          "country": "FR"
+        }
+      }
+    },
+    "items": [],
+    "totals": {
+      "totalHT": 990,
+      "totalTVA": 198,
+      "totalTTC": 1188,
+      "amountPaid": 0,
+      "amountDue": 1188
+    },
+    "einvoicing": {
+      "paId": "dep_current",
+      "paStatus": "rejected",
+      "paStatusCode": "fr:213",
+      "paTransactionId": null,
+      "paErrorCode": null,
+      "rejectionCode": "REJ_ADR",
+      "rejectionSource": "platform",
+      "rejectionReason": "REJ_ADR — Directory line matricule_plateforme (0037) does not match expected matricule (0022)",
+      "rejectionNote": null,
+      "rejectionCategory": "addressing_error",
+      "refusalReason": null,
+      "paIdempotencyKey": "submission_same_attempt",
+      "peppolDeliveryId": null,
+      "ereportingId": null,
+      "ereportingPaymentId": null,
+      "sentAt": "2026-09-07T12:36:00.000Z",
+      "trackingId": null,
+      "routingIdentifier": "0225:73282932000074",
+      "buyerReachableAt": null,
+      "directoryCheckedAt": null,
+      "submissionArtefact": {
+        "kind": "cii",
+        "path": "invoices/inv_00090/submission.xml",
+        "generatedAt": "2026-09-07T12:35:00.000Z",
+        "correctedRules": [],
+        "routingIdentifier": "0225:73282932000074"
+      },
+      "previousSubmissions": [
+        {
+          "paId": "dep_previous",
+          "paTransactionId": null,
+          "paIdempotencyKey": "submission_previous",
+          "paStatus": "rejected",
+          "paStatusCode": "fr:213",
+          "paErrorCode": null,
+          "rejectionReason": "AUTRE — Ce motif nécessite une explication en note de CDV.",
+          "rejectionCode": "AUTRE",
+          "rejectionSource": "platform",
+          "rejectionNote": "L’adresse de réception doit être confirmée.",
+          "rejectionCategory": "other",
+          "sentAt": "2026-09-07T08:00:00.000Z",
+          "closedAt": "2026-09-07T12:35:00.000Z"
+        }
+      ]
+    },
+    "livemode": true,
+    "created": "2026-09-07T12:00:00.000Z",
+    "updated": "2026-09-07T12:36:00.000Z"
+  },
+  "events": [
+    {
+      "id": "evt_invoice_rejected",
+      "object": "event",
+      "type": "invoice.rejected",
+      "apiVersion": "2026-09-01",
+      "created": "2026-09-07T12:36:00.000Z",
+      "livemode": true,
+      "data": {
+        "id": "inv_00090",
+        "object": "invoice",
+        "number": "FAC2026-00090",
+        "status": "rejected",
+        "previous_status": "deposited",
+        "livemode": true,
+        "documentStatus": "finalized",
+        "transmissionStatus": "rejected",
+        "transmissionDetail": null,
+        "paymentStatus": "unpaid",
+        "paErrorCode": null,
+        "rejectionReason": "REJ_ADR — Directory line matricule_plateforme (0037) does not match expected matricule (0022)",
+        "rejectionCategory": "addressing_error",
+        "rejectionCode": "REJ_ADR",
+        "rejectionSource": "platform",
+        "metadata": {}
+      },
+      "request": null
+    },
+    {
+      "id": "evt_invoice_refused",
+      "object": "event",
+      "type": "invoice.refused",
+      "apiVersion": "2026-09-01",
+      "created": "2026-09-07T12:36:00.000Z",
+      "livemode": true,
+      "data": {
+        "id": "inv_00090",
+        "object": "invoice",
+        "number": "FAC2026-00090",
+        "status": "refused",
+        "previous_status": "deposited",
+        "livemode": true,
+        "documentStatus": "finalized",
+        "transmissionStatus": "rejected",
+        "transmissionDetail": "refused",
+        "paymentStatus": "unpaid",
+        "paErrorCode": null,
+        "rejectionReason": "Montant contesté.",
+        "rejectionCategory": "refused_by_buyer",
+        "rejectionCode": null,
+        "rejectionSource": "buyer",
+        "metadata": {}
+      },
+      "request": null
+    },
+    {
+      "id": "evt_credit_note_credit_refused",
+      "object": "event",
+      "type": "credit_note.credit_refused",
+      "apiVersion": "2026-09-01",
+      "created": "2026-09-07T12:36:00.000Z",
+      "livemode": true,
+      "data": {
+        "id": "cn_example",
+        "object": "credit_note",
+        "number": "AV2026-00001",
+        "status": "credit_refused",
+        "previous_status": "deposited",
+        "livemode": true,
+        "documentStatus": "finalized",
+        "transmissionStatus": "rejected",
+        "transmissionDetail": "refused",
+        "paymentStatus": "unpaid",
+        "paErrorCode": null,
+        "rejectionReason": "Montant contesté.",
+        "rejectionCategory": "refused_by_buyer",
+        "rejectionCode": null,
+        "rejectionSource": "buyer",
+        "metadata": {},
+        "relatedInvoiceId": "inv_00090",
+        "relatedInvoiceNumber": "FAC2026-00090"
+      },
+      "request": null
+    },
+    {
+      "id": "evt_payment_received",
+      "object": "event",
+      "type": "payment.received",
+      "apiVersion": "2026-09-01",
+      "created": "2026-09-07T12:36:00.000Z",
+      "livemode": true,
+      "data": {
+        "id": "inv_00090",
+        "object": "invoice",
+        "number": "FAC2026-00090",
+        "status": "paid",
+        "previous_status": "rejected",
+        "livemode": true,
+        "documentStatus": "finalized",
+        "transmissionStatus": "rejected",
+        "transmissionDetail": null,
+        "paymentStatus": "paid",
+        "paErrorCode": null,
+        "rejectionReason": "REJ_ADR — Directory line matricule_plateforme (0037) does not match expected matricule (0022)",
+        "rejectionCategory": "addressing_error",
+        "rejectionCode": "REJ_ADR",
+        "rejectionSource": "platform",
+        "metadata": {},
+        "amount": "11.88",
+        "total_paid": "11.88",
+        "total_due": "11.88",
+        "total": "11.88",
+        "amountDue": "0.00"
+      },
+      "request": null
+    }
+  ],
+  "payment": {
+    "id": "pay_example",
+    "object": "payment",
+    "amount": 1188,
+    "method": "transfer",
+    "reference": null,
+    "paidAt": "2026-09-07T12:40:00.000Z",
+    "recorded_by": "api",
+    "created": "2026-09-07T12:41:00.000Z",
+    "fr212": {
+      "state": "awaiting_deposit",
+      "sentAt": null,
+      "lastErrorCode": "awaiting_pa_deposit",
+      "updatedAt": "2026-09-07T12:41:00.000Z"
+    }
+  },
+  "blockedPayment": {
+    "id": "pay_example",
+    "object": "payment",
+    "amount": 1188,
+    "method": "transfer",
+    "reference": null,
+    "paidAt": "2026-09-07T12:40:00.000Z",
+    "recorded_by": "api",
+    "created": "2026-09-07T12:41:00.000Z",
+    "fr212": {
+      "state": "blocked",
+      "sentAt": null,
+      "lastErrorCode": "pa_lifecycle_rejected",
+      "lastErrorReason": "Invoice identifier is rejected.",
+      "updatedAt": "2026-09-07T12:41:00.000Z"
+    }
+  },
+  "customer": {
+    "id": "cus_example",
+    "object": "customer",
+    "name": "SAS ALPHA MENUISERIE",
+    "warnings": [
+      {
+        "code": "buyer_nature_suspect",
+        "message": "The customer name suggests a business. Check the customer type and SIRET.",
+        "param": "name"
+      }
+    ]
+  },
+  "taxDecision": {
+    "id": "taxdec_example",
+    "object": "tax_decision",
+    "warnings": [
+      {
+        "code": "buyer_nature_suspect",
+        "message": "The customer name suggests a business. Check the customer type and SIRET.",
+        "param": "customerId"
+      }
+    ]
+  },
+  "creditNote": {
+    "id": "cn_example",
+    "object": "credit_note",
+    "relatedInvoiceId": "inv_00090",
+    "relatedInvoiceNumber": "FAC2026-00090",
+    "einvoicing": {
+      "paId": null,
+      "paStatus": "rejected",
+      "depositedAt": null,
+      "paStatusCode": "fr:210",
+      "rejectionReason": "Montant contesté.",
+      "rejectionCode": null,
+      "rejectionCategory": "refused_by_buyer",
+      "rejectionSource": "buyer",
+      "rejectionNote": "Corriger le montant convenu.",
+      "previousSubmissions": []
+    }
+  }
+}

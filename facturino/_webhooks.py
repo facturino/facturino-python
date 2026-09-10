@@ -22,6 +22,7 @@ import time
 from typing import Any
 
 from ._errors import SignatureVerificationError
+from ._types import WebhookEvent
 
 # Default tolerance: 5 minutes (300 seconds)
 DEFAULT_TOLERANCE = 300
@@ -37,7 +38,7 @@ class Webhook:
         secret: str,
         *,
         tolerance: int = DEFAULT_TOLERANCE,
-    ) -> dict[str, Any]:
+    ) -> WebhookEvent:
         """Verify a webhook signature and return the parsed event.
 
         Args:

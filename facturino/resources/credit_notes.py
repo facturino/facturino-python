@@ -9,6 +9,7 @@ from typing import Any
 
 from .._client import AsyncHttpClient, SyncHttpClient
 from .._pagination import AsyncPage, SyncPage
+from .._types import CreditNote
 
 
 def _email_body(params: dict[str, Any]) -> dict[str, Any]:
@@ -40,7 +41,7 @@ class CreditNotes:
 
     def create(
         self, *, idempotency_key: str | None = None, **params: Any
-    ) -> dict[str, Any]:
+    ) -> CreditNote:
         """Create a draft credit note.
 
         Args:
@@ -75,11 +76,11 @@ class CreditNotes:
         resp = self._client.get("/v1/credit-notes", params=params)
         return SyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
-    def get(self, credit_note_id: str) -> dict[str, Any]:
+    def get(self, credit_note_id: str) -> CreditNote:
         resp = self._client.get(f"/v1/credit-notes/{credit_note_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    def update(self, credit_note_id: str, **params: Any) -> dict[str, Any]:
+    def update(self, credit_note_id: str, **params: Any) -> CreditNote:
         resp = self._client.patch(f"/v1/credit-notes/{credit_note_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 
@@ -179,7 +180,7 @@ class AsyncCreditNotes:
 
     async def create(
         self, *, idempotency_key: str | None = None, **params: Any
-    ) -> dict[str, Any]:
+    ) -> CreditNote:
         """Create a draft credit note.
 
         Args:
@@ -214,11 +215,11 @@ class AsyncCreditNotes:
         resp = await self._client.get("/v1/credit-notes", params=params)
         return AsyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
-    async def get(self, credit_note_id: str) -> dict[str, Any]:
+    async def get(self, credit_note_id: str) -> CreditNote:
         resp = await self._client.get(f"/v1/credit-notes/{credit_note_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    async def update(self, credit_note_id: str, **params: Any) -> dict[str, Any]:
+    async def update(self, credit_note_id: str, **params: Any) -> CreditNote:
         resp = await self._client.patch(f"/v1/credit-notes/{credit_note_id}", json=params)
         return resp.json()  # type: ignore[no-any-return]
 

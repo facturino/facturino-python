@@ -4,6 +4,45 @@ All notable changes to the `facturino` Python SDK are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.7.0] - 2026-09-10
+
+
+### Added
+- Code-based rejection fields: `rejectionCode`, `rejectionSource`,
+  `rejectionNote`, verbatim `rejectionReason`, and eleven rejection categories,
+  including `addressing_error` and `other`. Closed attempts retain their
+  rejection fields in `previousSubmissions`.
+- Active recipient `routingIdentifier`, including the submitted CII artefact,
+  and directory follow-up timestamps `buyerReachableAt` / `directoryCheckedAt`.
+- Complete payment `fr212` state, including `awaiting_deposit`, `sentAt`,
+  `lastErrorCode`, `lastErrorReason` and `updatedAt`.
+- Advisory `BuyerNatureWarning` arrays on customers and tax decisions;
+  `relatedInvoiceNumber` on credit notes and their events.
+- Webhook data exposes coded verdicts and document axes. Structured lifecycle
+  entries expose optional `code` and `params`; historical details remain readable.
+
+### Compatibility with 2.5.0 and 2.6.0 in Node / Go
+- Backfill response models for the nine earlier rejection categories, the
+  payment collection status and document event fields, then extend them above.
+- Targeted replay, including an endpoint that already received the event,
+  returns `EventRetryResult` (`id`, `object`, `retryScheduled`, optional
+  `endpointId`), not a complete event. The existing replay method is preserved.
+
+Response TypedDicts are available from `facturino._types`; ordinary dictionaries
+remain the runtime result. Synchronous and asynchronous replay share the receipt.
+
+### Transport and response corrections (2026-09-09)
+
+- Correct `Payment.recorded_by` (api/app/system), nullable responses, and event-family payloads; cover the same contract fixtures across all four SDKs.
+
+- Generate a stable idempotency key once per POST call and preserve it through
+  transport retries; never automatically retry an unkeyed POST. Explicit caller
+  keys take precedence. A new call receives a new key: persist and pass your own
+  key for retries across separate calls or process restarts.
+- Respect the full `Retry-After`, including HTTP dates, within a default 60-second
+  cumulative retry waiting budget; return the original HTTP error when the delay
+  exceeds the remaining budget. Configure `auto_idempotency=False` and `retry_budget` (seconds), for sync and async clients.
+
 ## [2.4.0] - 2026-09-06
 
 ### Added

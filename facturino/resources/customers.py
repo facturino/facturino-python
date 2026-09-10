@@ -9,6 +9,7 @@ from typing import Any
 
 from .._client import AsyncHttpClient, SyncHttpClient
 from .._pagination import AsyncPage, SyncPage
+from .._types import Customer
 
 
 class Customers:
@@ -17,7 +18,7 @@ class Customers:
     def __init__(self, client: SyncHttpClient) -> None:
         self._client = client
 
-    def create(self, **params: Any) -> dict[str, Any]:
+    def create(self, **params: Any) -> Customer:
         """Create a customer.
 
         Args:
@@ -45,11 +46,11 @@ class Customers:
         resp = self._client.get("/v1/customers", params=params)
         return SyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
-    def get(self, customer_id: str) -> dict[str, Any]:
+    def get(self, customer_id: str) -> Customer:
         resp = self._client.get(f"/v1/customers/{customer_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    def update(self, customer_id: str, **params: Any) -> dict[str, Any]:
+    def update(self, customer_id: str, **params: Any) -> Customer:
         """Update a customer.
 
         Entries in ``contacts`` accept a ``role`` among ``billing``,
@@ -99,7 +100,7 @@ class AsyncCustomers:
     def __init__(self, client: AsyncHttpClient) -> None:
         self._client = client
 
-    async def create(self, **params: Any) -> dict[str, Any]:
+    async def create(self, **params: Any) -> Customer:
         """Create a customer.
 
         Args:
@@ -124,11 +125,11 @@ class AsyncCustomers:
         resp = await self._client.get("/v1/customers", params=params)
         return AsyncPage.from_response(resp.json(), fetcher=self.list, original_params=params)
 
-    async def get(self, customer_id: str) -> dict[str, Any]:
+    async def get(self, customer_id: str) -> Customer:
         resp = await self._client.get(f"/v1/customers/{customer_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    async def update(self, customer_id: str, **params: Any) -> dict[str, Any]:
+    async def update(self, customer_id: str, **params: Any) -> Customer:
         """Update a customer.
 
         Entries in ``contacts`` accept a ``role`` among ``billing``,

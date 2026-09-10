@@ -66,6 +66,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .._types import TaxDecision
+
 from .._client import AsyncHttpClient, SyncHttpClient
 
 _PATH = "/v1/tax-decisions"
@@ -164,7 +166,7 @@ class TaxDecisions:
         *,
         idempotency_key: str,
         **params: Any,
-    ) -> dict[str, Any]:
+    ) -> TaxDecision:
         """Take a decision on a commercial operation.
 
         Business idempotency is durable here, beyond the 24-hour transport
@@ -212,13 +214,13 @@ class TaxDecisions:
         )
         return resp.json()  # type: ignore[no-any-return]
 
-    def retrieve(self, tax_decision_id: str) -> dict[str, Any]:
+    def retrieve(self, tax_decision_id: str) -> TaxDecision:
         """Read a decision back — typically after a payment capture, to check
         that the captured amount, currency and buyer match what was decided."""
         resp = self._client.get(f"{_PATH}/{tax_decision_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    def get(self, tax_decision_id: str) -> dict[str, Any]:
+    def get(self, tax_decision_id: str) -> TaxDecision:
         """Alias of :meth:`retrieve`, matching the other resources."""
         return self.retrieve(tax_decision_id)
 
@@ -234,7 +236,7 @@ class AsyncTaxDecisions:
         *,
         idempotency_key: str,
         **params: Any,
-    ) -> dict[str, Any]:
+    ) -> TaxDecision:
         """Take a decision on a commercial operation. See :meth:`TaxDecisions.create`."""
         _check_idempotency_key(idempotency_key)
         resp = await self._client.post(
@@ -244,11 +246,11 @@ class AsyncTaxDecisions:
         )
         return resp.json()  # type: ignore[no-any-return]
 
-    async def retrieve(self, tax_decision_id: str) -> dict[str, Any]:
+    async def retrieve(self, tax_decision_id: str) -> TaxDecision:
         """Read a decision back. See :meth:`TaxDecisions.retrieve`."""
         resp = await self._client.get(f"{_PATH}/{tax_decision_id}")
         return resp.json()  # type: ignore[no-any-return]
 
-    async def get(self, tax_decision_id: str) -> dict[str, Any]:
+    async def get(self, tax_decision_id: str) -> TaxDecision:
         """Alias of :meth:`retrieve`."""
         return await self.retrieve(tax_decision_id)

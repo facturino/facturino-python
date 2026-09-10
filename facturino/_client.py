@@ -7,6 +7,8 @@ idempotency keys, and response deserialization.
 from __future__ import annotations
 
 import asyncio
+import math
+from email.utils import parsedate_to_datetime
 import time
 import uuid
 from typing import Any
@@ -16,7 +18,7 @@ import httpx
 from ._errors import ApiError, FacturinoError
 
 # SDK metadata
-VERSION = "2.4.0"
+VERSION = "2.7.0"
 API_VERSION = "2026-09-01"
 DEFAULT_BASE_URL = "https://facturino.com/api"
 DEFAULT_TIMEOUT = 30.0
@@ -53,9 +55,14 @@ def _get_retry_delay(attempt: int, response: httpx.Response | None = None) -> fl
         retry_after = response.headers.get("retry-after")
         if retry_after is not None:
             try:
-                return min(float(retry_after), MAX_RETRY_DELAY)
+                seconds = float(retry_after)
+                if math.isfinite(seconds) and seconds >= 0:
+                    return seconds
             except ValueError:
-                pass
+                try:
+                    return max(0.0, parsedate_to_datetime(retry_after).timestamp() - time.time())
+                except (ValueError, TypeError, OverflowError):
+                    pass
 
     delay = INITIAL_RETRY_DELAY * (2 ** attempt)
     return min(float(delay), MAX_RETRY_DELAY)
@@ -71,10 +78,16 @@ class SyncHttpClient:
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = MAX_RETRIES,
+        auto_idempotency: bool = True,
+        retry_budget: float = 60.0,
     ) -> None:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.max_retries = max_retries
+        self.auto_idempotency = auto_idempotency
+        if not math.isfinite(retry_budget) or retry_budget < 0:
+            raise ValueError("retry_budget must be finite and non-negative")
+        self.retry_budget = retry_budget
         self._client = httpx.Client(
             base_url=self.base_url,
             headers=_build_headers(api_key),
@@ -114,7 +127,9 @@ class SyncHttpClient:
             idempotency_key = json.pop("idempotency_key")
 
         # Auto-generate idempotency key for POST requests
-        if method.upper() == "POST" and idempotency_key is None:
+        if idempotency_key is None:
+            idempotency_key = next((v for k, v in extra_headers.items() if k.lower() == "idempotency-key"), None)
+        if method.upper() == "POST" and idempotency_key is None and self.auto_idempotency:
             idempotency_key = str(uuid.uuid4())
         if idempotency_key:
             extra_headers["Idempotency-Key"] = idempotency_key
@@ -123,6 +138,8 @@ class SyncHttpClient:
         if params:
             params = {k: v for k, v in params.items() if v is not None}
 
+        can_retry = method.upper() != "POST" or bool(idempotency_key)
+        remaining_budget = self.retry_budget
         last_error: Exception | None = None
         last_response: httpx.Response | None = None
 
@@ -140,17 +157,23 @@ class SyncHttpClient:
                 if response.status_code < 400:
                     return response
 
-                if response.status_code in RETRY_STATUS_CODES and attempt < self.max_retries:
+                if can_retry and response.status_code in RETRY_STATUS_CODES and attempt < self.max_retries:
                     delay = _get_retry_delay(attempt, response)
+                    if delay > remaining_budget:
+                        raise _parse_error_response(response)
+                    remaining_budget -= delay
                     time.sleep(delay)
                     continue
 
                 raise _parse_error_response(response)
 
-            except (httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout) as exc:
+            except httpx.TransportError as exc:
                 last_error = exc
-                if attempt < self.max_retries:
+                if can_retry and attempt < self.max_retries:
                     delay = _get_retry_delay(attempt)
+                    if delay > remaining_budget:
+                        raise FacturinoError(f"Retry waiting budget exhausted: {exc}") from exc
+                    remaining_budget -= delay
                     time.sleep(delay)
                     continue
                 raise FacturinoError(f"Connection failed after {self.max_retries + 1} attempts: {exc}") from exc
@@ -183,10 +206,16 @@ class AsyncHttpClient:
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = MAX_RETRIES,
+        auto_idempotency: bool = True,
+        retry_budget: float = 60.0,
     ) -> None:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.max_retries = max_retries
+        self.auto_idempotency = auto_idempotency
+        if not math.isfinite(retry_budget) or retry_budget < 0:
+            raise ValueError("retry_budget must be finite and non-negative")
+        self.retry_budget = retry_budget
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
             headers=_build_headers(api_key),
@@ -222,7 +251,9 @@ class AsyncHttpClient:
             json = dict(json)
             idempotency_key = json.pop("idempotency_key")
 
-        if method.upper() == "POST" and idempotency_key is None:
+        if idempotency_key is None:
+            idempotency_key = next((v for k, v in extra_headers.items() if k.lower() == "idempotency-key"), None)
+        if method.upper() == "POST" and idempotency_key is None and self.auto_idempotency:
             idempotency_key = str(uuid.uuid4())
         if idempotency_key:
             extra_headers["Idempotency-Key"] = idempotency_key
@@ -230,6 +261,8 @@ class AsyncHttpClient:
         if params:
             params = {k: v for k, v in params.items() if v is not None}
 
+        can_retry = method.upper() != "POST" or bool(idempotency_key)
+        remaining_budget = self.retry_budget
         last_error: Exception | None = None
         last_response: httpx.Response | None = None
 
@@ -247,17 +280,23 @@ class AsyncHttpClient:
                 if response.status_code < 400:
                     return response
 
-                if response.status_code in RETRY_STATUS_CODES and attempt < self.max_retries:
+                if can_retry and response.status_code in RETRY_STATUS_CODES and attempt < self.max_retries:
                     delay = _get_retry_delay(attempt, response)
+                    if delay > remaining_budget:
+                        raise _parse_error_response(response)
+                    remaining_budget -= delay
                     await asyncio.sleep(delay)
                     continue
 
                 raise _parse_error_response(response)
 
-            except (httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout) as exc:
+            except httpx.TransportError as exc:
                 last_error = exc
-                if attempt < self.max_retries:
+                if can_retry and attempt < self.max_retries:
                     delay = _get_retry_delay(attempt)
+                    if delay > remaining_budget:
+                        raise FacturinoError(f"Retry waiting budget exhausted: {exc}") from exc
+                    remaining_budget -= delay
                     await asyncio.sleep(delay)
                     continue
                 raise FacturinoError(f"Connection failed after {self.max_retries + 1} attempts: {exc}") from exc
