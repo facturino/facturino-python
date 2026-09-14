@@ -418,7 +418,10 @@ class ObligationFollowUp(TypedDict):
     reasonCode: str | None
     reasonSource: Literal["platform", "buyer", "facturino"] | None
     owner: Literal["facturino", "customer"] | None
-    action: Literal["submit", "follow_status", "retry", "reconcile", "watch_directory", "investigate", "correct_source", "review_buyer_refusal", "connect_platform"] | None
+    action: Literal[
+        "submit", "follow_status", "retry", "reconcile", "watch_directory",
+        "investigate", "correct_source", "review_buyer_refusal", "connect_platform",
+    ] | None
     nextAttemptAt: str | None
 
 
