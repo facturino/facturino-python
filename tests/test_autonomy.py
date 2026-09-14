@@ -1,8 +1,18 @@
 import json
 from pathlib import Path
 from typing import get_type_hints
-from facturino._types import ObligationFollowUp, InvoiceEinvoicing, CreditNoteEinvoicing, PaymentCollectionStatus, Payment, EReporting, WebhookEventData
-from facturino.event_data import ObligationWebhookData, EVENT_DATA_TYPES
+
+from facturino._types import (
+    CreditNoteEinvoicing,
+    EReporting,
+    InvoiceEinvoicing,
+    ObligationFollowUp,
+    Payment,
+    PaymentCollectionStatus,
+    WebhookEventData,
+)
+from facturino.event_data import EVENT_DATA_TYPES, ObligationWebhookData
+
 
 def test_autonomous_obligation_contract():
     corpus = json.loads((Path(__file__).parent / "fixtures/contract/autonomy.json").read_text())
