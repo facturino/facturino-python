@@ -413,7 +413,27 @@ class InvoicePreviousSubmission(TypedDict, total=False):
     rejectionNote: str | None
 
 
+class ObligationFollowUp(TypedDict):
+    state: Literal["pending", "processing", "waiting", "reconciling", "attention_required", "completed"]
+    reasonCode: str | None
+    reasonSource: Literal["platform", "buyer", "facturino"] | None
+    owner: Literal["facturino", "customer"] | None
+    action: Literal["submit", "follow_status", "retry", "reconcile", "watch_directory", "investigate", "correct_source", "review_buyer_refusal", "connect_platform"] | None
+    nextAttemptAt: str | None
+
+
+class EReportingBlock(TypedDict, total=False):
+    volet: Literal["transaction", "payment"]
+    code: str
+    remedy: str
+    obligation: ObligationFollowUp | None
+    periodStart: str
+    periodEnd: str
+    updated: str
+
+
 class InvoiceEinvoicing(TypedDict, total=False):
+    obligation: ObligationFollowUp | None
     paId: str | None
     paStatus: str | None
     paStatusCode: str | None
@@ -440,6 +460,11 @@ class InvoiceEinvoicing(TypedDict, total=False):
 
 
 class CreditNoteEinvoicing(TypedDict, total=False):
+    routingIdentifier: str | None
+    senderRoutingIdentifier: str | None
+    buyerReachableAt: str | None
+    directoryCheckedAt: str | None
+    obligation: ObligationFollowUp | None
     paErrorCode: str | None
     paStatusCode: str | None
     rejectionCode: str | None
@@ -456,6 +481,7 @@ class CreditNoteEinvoicing(TypedDict, total=False):
 
 
 class PaymentCollectionStatus(TypedDict, total=False):
+    obligation: ObligationFollowUp | None
     state: Literal["pending", "awaiting_deposit", "sent", "blocked", "reconciliation_required", "failed"]
     sentAt: str | None
     lastErrorCode: str | None
@@ -470,6 +496,7 @@ class BuyerNatureWarning(TypedDict, total=False):
 
 
 class Invoice(TypedDict, total=False):
+    ereportingBlock: EReportingBlock | None
     paymentInfo: dict[str, Any]
     archive: dict[str, Any] | None
     portal: dict[str, Any] | None
@@ -527,6 +554,7 @@ class Invoice(TypedDict, total=False):
 
 
 class Payment(TypedDict, total=False):
+    reportingFollowUp: ObligationFollowUp | None
     companyId: str
     invoiceId: str
     livemode: bool
@@ -615,6 +643,7 @@ class TaxDecision(TypedDict, total=False):
 
 
 class CreditNote(TypedDict, total=False):
+    ereportingBlock: EReportingBlock | None
     companyId: str
     customer: dict[str, Any]
     currency: str
@@ -650,6 +679,9 @@ class CreditNote(TypedDict, total=False):
 
 
 class WebhookEventData(TypedDict, total=False):
+    paRejectionCode: str | None
+    paRejectionReason: str | None
+    obligation: ObligationFollowUp | None
     paStatus: str
     paInvoiceId: str | None
     invoiceId: str
@@ -667,7 +699,7 @@ class WebhookEventData(TypedDict, total=False):
     count: int
     plan: str
     stripeSubscriptionId: str
-    reason: str
+    reason: str | None
     attempt: int
     pausedUntil: str | None
     period: str | None
@@ -740,3 +772,30 @@ class EventRetryResult(TypedDict, total=False):
     object: Literal["event"]
     retryScheduled: bool
     endpointId: str
+
+
+class EReporting(TypedDict, total=False):
+    """Read-only declaration; amounts are integer cents in REST responses."""
+    id: str
+    object: Literal["ereporting"]
+    status: str
+    state: str
+    type: str
+    period: str
+    periodStart: str | None
+    periodEnd: str | None
+    totalHT: int
+    totalTVA: int
+    totalTTC: int
+    lines: list[dict[str, Any]]
+    attempt: int
+    obligation: ObligationFollowUp | None
+    paRejectionCode: str | None
+    paRejectionReason: str | None
+    blockedReason: str | None
+    reconciliationReason: str | None
+    supersedesDeclarationId: str | None
+    supersededByDeclarationId: str | None
+    livemode: bool
+    created: str
+    updated: str

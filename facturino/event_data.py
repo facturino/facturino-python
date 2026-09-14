@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
 
-from ._types import PaymentCollectionStatus
+from ._types import ObligationFollowUp, PaymentCollectionStatus
 
 
 class InvoiceWebhookData(TypedDict, total=False):
+    obligation: ObligationFollowUp | None
     id: str
     object: Literal["invoice"]
     status: str
@@ -66,6 +67,7 @@ class QuoteWebhookData(TypedDict, total=False):
 
 
 class CreditNoteWebhookData(TypedDict, total=False):
+    obligation: ObligationFollowUp | None
     paStatus: str
     paInvoiceId: str | None
     id: str
@@ -119,6 +121,7 @@ class PaymentCreatedWebhookData(TypedDict, total=False):
 
 
 class PaymentReceivedWebhookData(TypedDict, total=False):
+    obligation: ObligationFollowUp | None
     paymentId: str | None
     fr212: PaymentCollectionStatus | None
     id: str
@@ -162,6 +165,9 @@ class PaymentReceivedWebhookData(TypedDict, total=False):
 
 
 class EreportingWebhookData(TypedDict, total=False):
+    obligation: ObligationFollowUp | None
+    paRejectionCode: str | None
+    paRejectionReason: str | None
     id: str
     object: Literal["ereporting"]
     status: str
@@ -197,7 +203,23 @@ class SubscriptionWebhookData(TypedDict, total=False):
     reason: str
 
 
+class ObligationWebhookData(TypedDict, total=False):
+    id: str
+    object: Literal["invoice", "credit_note", "payment", "ereporting"]
+    status: str
+    obligation: ObligationFollowUp
+    reason: str | None
+    invoiceId: str
+    fr212: PaymentCollectionStatus | None
+
+
 EVENT_DATA_TYPES = {
+    "invoice.obligation_updated": ObligationWebhookData,
+    "credit_note.obligation_updated": ObligationWebhookData,
+    "payment.obligation_updated": ObligationWebhookData,
+    "ereporting.obligation_updated": ObligationWebhookData,
+    "ereporting.accepted": EreportingWebhookData,
+    "ereporting.rejected": EreportingWebhookData,
     "invoice.created": InvoiceWebhookData,
     "invoice.finalized": InvoiceWebhookData,
     "invoice.sending": InvoiceWebhookData,
