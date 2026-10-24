@@ -24,6 +24,7 @@ class Customers:
         Args:
             name: Company or individual name.
             type: "company" or "individual".
+            taxStatus: Optional ``"taxable"`` or ``"non_taxable"``.
             email: Contact email.
             siret: 14-digit SIRET (B2B France).
             vat_number / vatNumber: EU VAT number.
@@ -53,6 +54,7 @@ class Customers:
     def update(self, customer_id: str, **params: Any) -> Customer:
         """Update a customer.
 
+        ``taxStatus`` optionally declares ``"taxable"`` or ``"non_taxable"``.
         Entries in ``contacts`` accept a ``role`` among ``billing``,
         ``technical`` and ``main``; the ``billing`` contact receives
         invoices by default.
@@ -106,6 +108,7 @@ class AsyncCustomers:
         Args:
             name: Company or individual name.
             type: "company" or "individual".
+            taxStatus: Optional ``"taxable"`` or ``"non_taxable"``.
             email: Contact email.
             siret: 14-digit SIRET (B2B France).
             vat_number / vatNumber: EU VAT number.
@@ -132,6 +135,7 @@ class AsyncCustomers:
     async def update(self, customer_id: str, **params: Any) -> Customer:
         """Update a customer.
 
+        ``taxStatus`` optionally declares ``"taxable"`` or ``"non_taxable"``.
         Entries in ``contacts`` accept a ``role`` among ``billing``,
         ``technical`` and ``main``; the ``billing`` contact receives
         invoices by default.

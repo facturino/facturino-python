@@ -34,18 +34,44 @@ class CustomerRef(TypedDict, total=False):
     snapshot: CustomerSnapshot
 
 
+class LocalTax(TypedDict, total=False):
+    """Local tax returned on a decision or invoice line, separate from VAT.
+
+    Saint-Martin TGCA is 4% with a registration in force, or 0 with a declared
+    exemption and its mention, under both tax sources. Without either, the
+    decision stays pending. The tax is included in totalTTC and the amount due.
+    Codes and exemptions are open strings: callers must accept future values.
+    """
+
+    code: str  # Currently "tgca_mf".
+    rateCentipercent: int
+    amount: int  # Integer centimes.
+    reference: str  # Registration reference when taxed; exemption reason otherwise.
+    exemption: str | None
+
+
 class LineItem(TypedDict, total=False):
+    """Quote input/output line or invoice item.
+
+    A quote declares optional supplyCategory; conversion copies it to the draft
+    unchanged. Omission stays undeclared, with no client-side default.
+    """
+
     product: str | None
     description: str
     quantity: int
     unit_price: int
     vat_rate: int
     vatCode: str
-    # Optional specific VATEX exemption code (BT-121), e.g. "VATEX-FR-261",
-    # when the exemption basis differs from the VAT category default.
+    # Open string from the official CIUS-FR list (88 codes), e.g. VATEX-FR-CGI261-4.
+    # Legacy VATEX-FR-261 / VATEX-FR-AUTOLIQ inputs are stored and returned as
+    # VATEX-FR-CGI261-4 / VATEX-FR-AE; previously issued documents keep their code.
     vatexCode: str
     discount_percent: int
     unit: str
+    kind: Literal["goods", "service"]
+    supplyCategory: str  # Open string, distinct from document kind.
+    localTax: LocalTax
 
 
 class Totals(TypedDict, total=False):
@@ -54,6 +80,7 @@ class Totals(TypedDict, total=False):
     totalTTC: str
     amountPaid: str
     amountDue: str
+    totalLocalTax: int  # Optional integer centimes, included in totalTTC and amountDue.
 
 
 class LifecycleEntry(TypedDict, total=False):
@@ -153,6 +180,7 @@ class NafInput(TypedDict, total=False):
 class CustomerCreateParams(TypedDict, total=False):
     name: str
     type: str
+    taxStatus: Literal["taxable", "non_taxable"]
     email: str
     siret: str
     siren: str
@@ -173,6 +201,7 @@ class CustomerCreateParams(TypedDict, total=False):
 
 class CustomerUpdateParams(TypedDict, total=False):
     name: str
+    taxStatus: Literal["taxable", "non_taxable"]
     email: str
     legalForm: LegalFormInput
     naf: NafInput
@@ -195,6 +224,8 @@ class CustomerLookupParams(TypedDict, total=False):
 
 
 class ProductCreateParams(TypedDict, total=False):
+    """Product input; optional kind and supplyCategory are stored and returned."""
+
     name: str
     description: str
     reference: str
@@ -204,11 +235,16 @@ class ProductCreateParams(TypedDict, total=False):
     vatRate: int
     vat_rate: int
     vatCode: str
+    vatexCode: str  # Official CIUS-FR code; open string, legacy aliases accepted.
     unit: str
     tags: list[str]
+    kind: Literal["goods", "service"]
+    supplyCategory: str  # Open string; omitted means undeclared.
 
 
 class ProductUpdateParams(TypedDict, total=False):
+    """Partial product update, including classification and active status."""
+
     name: str
     description: str
     reference: str
@@ -217,8 +253,34 @@ class ProductUpdateParams(TypedDict, total=False):
     unit_price: int
     vatRate: int
     vat_rate: int
+    vatCode: str
+    vatexCode: str  # Official CIUS-FR code; open string, legacy aliases accepted.
     unit: str
     tags: list[str]
+    kind: Literal["goods", "service"]
+    supplyCategory: str
+    active: bool
+
+
+class Product(TypedDict, total=False):
+    """Product response shape; historical classification omissions stay absent."""
+
+    id: str
+    object: Literal["product"]
+    name: str
+    description: str
+    reference: str
+    unitPrice: int
+    vatRate: int
+    vatCode: str
+    vatexCode: str
+    unit: str
+    tags: list[str]
+    active: bool
+    livemode: bool
+    created: str
+    kind: Literal["goods", "service"]
+    supplyCategory: str  # Open string, distinct from document kind.
 
 
 # ---------------------------------------------------------------------------
@@ -544,6 +606,10 @@ class Invoice(TypedDict, total=False):
     taxDecisionId: str
     taxSource: Literal["facturino", "integration"]
     commercialDraft: dict[str, Any] | None
+    # Frozen fiscal position copied from the decision. Its "notices" key holds the
+    # decision's notices frozen with it (the shape of TaxDecisionNotice): what
+    # was retained and what the seller can do next. Empty when nothing is to
+    # report; historical documents may omit the key.
     taxSnapshot: dict[str, Any]
     documentStatus: Literal["draft", "finalized", "cancelled"]
     transmissionStatus: Literal[
@@ -587,6 +653,7 @@ class Customer(TypedDict, total=False):
     warnings: list[BuyerNatureWarning]
     name: str
     type: Literal["company", "individual"]
+    taxStatus: Literal["taxable", "non_taxable"]
     siret: str | None
     vatNumber: str | None
     legalForm: dict[str, Any]
@@ -600,7 +667,220 @@ class Customer(TypedDict, total=False):
     updated: str
 
 
+class LocalTaxRegistration(TypedDict, total=False):
+    """Seller registration for a local tax, with civil dates (YYYY-MM-DD)."""
+
+    territory: str  # Currently "MF"; open to future territories.
+    reference: str
+    effectiveFrom: str
+    effectiveTo: str | None
+
+
+class TaxDecisionSellerProfile(TypedDict, total=False):
+    """Shape of the seller profile frozen with a tax decision."""
+
+    id: str
+    object: str
+    companyId: str
+    livemode: bool
+    revision: int
+    establishment: dict[str, Any]
+    additionalEstablishments: list[dict[str, Any]]
+    vatRegime: str
+    franchiseEnBase: bool
+    vatOnDebits: bool
+    sizeCategory: str
+    voluntaryEarlyAdoption: bool
+    supportedSupplyCategories: list[str]
+    priceMode: str
+    rulesVersion: str
+    effectiveFrom: str
+    effectiveTo: str | None
+    localTaxRegistrations: list[LocalTaxRegistration]
+    created: str
+    updated: str
+
+
+class _TaxDecisionLineCategory(TypedDict):
+    category: str
+
+
+class TaxDecisionLineInput(_TaxDecisionLineCategory, total=False):
+    """Commercial line for tax-decisions create (camelCase wire keys).
+
+    category is required under both sources, including for quote-derived inputs.
+    """
+
+    reference: str
+    description: str
+    relatedCategory: str
+    rateCategory: str
+    placeOfSupplyRule: str
+    goodsMovement: str
+    unitAmount: int
+    quantity: str
+    discount: dict[str, Any] | None
+    vatRate: int
+    vatCode: str
+    vatexCode: str  # Open string from the official CIUS-FR list; legacy aliases accepted.
+    placeOfSupply: str
+    # Open string. Currently "cgism_253" or "not_used_in_saint_martin".
+    localTaxExemption: str
+
+
+class TaxDecisionLine(TypedDict, total=False):
+    """Decision line; decided amounts are integer centimes.
+
+    category is None only on a pending quote/draft line with no declared supply
+    category (supply_category_not_declared), without decided amounts. A service
+    line whose services/electronic-services readings agree is final with category
+    services and a notice. Direct tax-decisions create always requires category.
+    """
+
+    reference: str
+    description: str
+    category: str | None
+    relatedCategory: str | None
+    rateCategory: str
+    placeOfSupplyRule: str
+    goodsMovement: str | None
+    quantity: str
+    discount: dict[str, Any] | None
+    effectiveCategory: str
+    treatment: str
+    vatCategoryCode: str
+    vatexCode: str | None  # Official CIUS-FR code; open string, null when inapplicable.
+    legalMention: str
+    rateCentipercent: int
+    rateBasis: str
+    placeOfSupply: str
+    placeOfSupplyReference: str
+    treatmentReference: str
+    invoiceChannel: str
+    transactionReporting: str
+    paymentReporting: str
+    unitAmount: int
+    amountHT: int
+    amountVAT: int
+    amountTTC: int
+    localTax: LocalTax
+
+
+class TaxDecisionTotals(TypedDict, total=False):
+    """Integer centimes; totalLocalTax, when present, is included in totalTTC
+    and amountToCharge. Only a final decision carries totals.
+    """
+
+    totalHT: int
+    totalVAT: int
+    totalTTC: int
+    totalLocalTax: int
+
+
+class TaxDecisionIssue(TypedDict, total=False):
+    """What keeps a decision from being final, with the missing fact and remedy.
+
+    Missing facts leave pending_verification without amounts. Unmodelled cases
+    are unsupported under facturino; integration can conclude them with a notice
+    and foreignTaxReviewRequired. Both sources refuse mixed O/other categories
+    (vat_category_o_split_required: issue two documents) and an EU address missing
+    the postal code needed to distinguish VAT territories
+    (destination_regional_scope_undetermined).
+    """
+
+    # Open string, including business_status_not_evidenced,
+    # eu_b2b_vat_number_not_validated, non_eu_business_status_not_evidenced,
+    # vies_unavailable, location_evidence_insufficient,
+    # location_evidence_contradictory, location_evidence_relief_undetermined,
+    # eu_threshold_state_missing, goods_movement_unknown and
+    # com_taaf_supplier_local_tax_liable (TGCA registration or exemption needed).
+    # non_taxable_legal_person_goods_regime_not_modelled covers goods dispatched
+    # to another member state or XI for a non-taxable legal person with a VAT number.
+    # supply_category_not_declared: declare the quote/draft line's supplyCategory;
+    # a service line's two readings did not yield the same complete tax result,
+    # or neither kind nor supplyCategory was declared (no reading is attempted).
+    code: str
+    # A more precise, equally stable reason, when the code alone does not say what
+    # to complete. "einvoicing_buyer_registration_required": a buyer declared as a
+    # business without a SIRET, while the electronic invoice the seller must issue
+    # requires the buyer's SIREN (CGI art. 242 nonies A). tax_status_not_declared:
+    # INSEE categories 7, 8 and 9 without taxStatus. legal_category_unresolved:
+    # SIRENE could not give the category. french_vat_and_tgca_cumulation: general
+    # service to a Saint-Martin consumer without localTaxExemption. Absent when
+    # the code says it all. Open string for future reasons.
+    detailCode: str
+    message: str
+    # Normative reference.
+    reference: str
+    # Reference of the line concerned; absent when the reason covers the whole
+    # operation.
+    lineId: str
+
+
+class TaxDecisionNotice(TypedDict, total=False):
+    """What the decision retained and what the seller can do next.
+
+    Notices never stand for a missing fact. Show them to the seller, and act only
+    on a ``final`` decision; ``issues`` explains any pending or unsupported one.
+    """
+
+    # Open string: destination_mechanism_missing (destination VAT invoiced, with
+    # registration guidance); location_evidence_contradictory (two concordant
+    # items of different kinds, or the same complete tax result in every possible
+    # territory); a VAT number set aside because national registration establishes
+    # status; business_status_not_evidenced within art. 18(2) only (see customer).
+    # Under integration, unmodelled cases carry the same code as the facturino
+    # refusal: com_taaf_local_tax_not_determined, com_taaf_local_regime_not_sourced,
+    # com_taaf_payment_withholding_not_modelled, eu_special_territory_not_implemented,
+    # non_taxable_legal_person_goods_regime_not_modelled. The integrator declares
+    # and assumes the tax; foreignTaxReviewRequired is true. Unknown codes remain
+    # readable as generic notices.
+    # supply_category_not_declared: a service line's services and
+    # electronically_supplied_services readings gave the same complete tax result;
+    # the final decision retains category services.
+    code: str
+    # A more precise, equally stable reason, when the code alone does not say what
+    # to do. On destination_mechanism_missing: threshold_exceeded (the one-stop-shop
+    # registration period runs from the first operation above the threshold),
+    # destination_option or multi_member_state_establishment (from the first
+    # operation taxed at destination). On vat_number_territory_mismatch or
+    # eu_b2b_vat_number_not_validated: vat_number_ignored_national_registration
+    # (number set aside because the national registration establishes the business
+    # status: the buyer stays a business, with no VAT number on the document).
+    # On location_evidence_contradictory: concordant_evidence or same_treatment.
+    # On com_taaf_local_regime_not_sourced: french_vat_and_tgca_cumulation.
+    # Absent when the code says it all.
+    detailCode: str
+    # Diagnostic message in English, free of personal data.
+    message: str
+    # Normative reference of the notice.
+    reference: str
+    # Reference of the line concerned; absent when the notice covers the whole
+    # operation.
+    lineId: str
+
+
+class TaxDecisionLegalCategory(TypedDict, total=False):
+    """SIRENE consultation frozen with the decision; absent when none was due.
+
+    A not_found or unavailable result leaves legal_category_unresolved pending.
+    Status and category code stay open strings; checkedAt is a civil date.
+    """
+
+    source: Literal["sirene"]
+    siren: str
+    status: str  # Currently found, not_found or unavailable.
+    legalCategoryCode: str | None
+    checkedAt: str  # YYYY-MM-DD.
+
+
 class TaxDecision(TypedDict, total=False):
+    """Immutable fiscal position. Act only on final, the only status with amounts.
+
+    A missing fact leaves pending_verification with a remedy in issues; an
+    unsupported decision explains its refusal. Notices report retained results.
+    """
+
     warnings: list[BuyerNatureWarning]
     id: str
     object: Literal["tax_decision"]
@@ -608,9 +888,30 @@ class TaxDecision(TypedDict, total=False):
     companyId: str
     status: Literal["final", "pending_verification", "unsupported"]
     customerId: str
+    # Buyer identity and qualification, frozen with the decision. natureBasis is
+    # an open string. declared_business_not_evidenced applies only under art. 18(2),
+    # second subparagraph, of Implementing Regulation (EU) 282/2011: telecom,
+    # broadcasting or electronic services to a buyer in the EU VAT territory
+    # (Monaco included) who communicated no VAT number. The buyer is treated as a
+    # non-taxable person with a notice. A communicated but unvalidated number
+    # leaves eu_b2b_vat_number_not_validated pending; INSEE categories 7, 8 and 9
+    # without taxStatus keep their refusal. declared_non_taxable means declared
+    # taxStatus: non_taxable. A legal person with a VAT number is checked through
+    # VIES: valid makes its services follow taxable-person rules (CGI art. 259-0),
+    # unreachable leaves vies_unavailable pending.
+    # ``vatNumber`` is the number as DECLARED on the customer record;
+    # ``retainedVatNumber`` is the one the decision RETAINED -- the only one the
+    # document, its electronic invoice and the e-reporting carry. It is None
+    # without a declared number, when the number is set aside because the national
+    # registration establishes the taxable status, or when the buyer is treated as
+    # a non-taxable person; it is absent on a decision taken before the field
+    # existed, where the declared number stands for the retained one.
     customer: dict[str, Any]
+    legalCategory: TaxDecisionLegalCategory  # Optional, including on historical responses.
     sellerProfileId: str
     sellerProfileRevision: int
+    # Shape of TaxDecisionSellerProfile, including optional localTaxRegistrations.
+    # Keep the plain dict annotation compatible with existing callers.
     sellerProfile: dict[str, Any]
     currency: str
     priceMode: Literal["tax_exclusive", "tax_inclusive"]
@@ -624,6 +925,8 @@ class TaxDecision(TypedDict, total=False):
     roundingPolicy: str
     requestFingerprint: str
     operationFingerprint: str
+    # Shapes of TaxDecisionLine and TaxDecisionTotals, respectively. Plain dict
+    # annotations are preserved for existing callers, as for sellerProfile.
     lines: list[dict[str, Any]]
     totals: dict[str, Any] | None
     vatBreakdown: list[dict[str, Any]]
@@ -637,7 +940,13 @@ class TaxDecision(TypedDict, total=False):
     vies: dict[str, Any]
     locationEvidence: list[dict[str, Any]]
     nonEuBusinessEvidence: dict[str, Any] | None
+    # Why the decision is NOT final. Empty on a final decision. Each item has
+    # the shape of `TaxDecisionIssue`; the annotation stays a plain dict so
+    # existing code typed against it keeps checking.
     issues: list[dict[str, Any]]
+    # What the decision retained and what the seller can do next. Always present,
+    # empty when there is nothing to report; never stands for a missing fact.
+    notices: list[TaxDecisionNotice]
     obligationReasons: list[dict[str, Any]]
     retryOfTaxDecisionId: str | None
     livemode: bool
@@ -671,6 +980,10 @@ class CreditNote(TypedDict, total=False):
     originalInvoiceId: str
     originalTaxDecisionId: str
     taxSource: Literal["facturino", "integration"]
+    # Fiscal position inherited from the invoice. Its "notices" key repeats the
+    # notices of the invoice it credits (the shape of TaxDecisionNotice): what was
+    # retained and what the seller can do next. Empty when nothing is to report;
+    # historical documents may omit the key.
     taxSnapshot: dict[str, Any]
     documentStatus: Literal["draft", "finalized", "cancelled"]
     transmissionStatus: Literal[

@@ -15,15 +15,29 @@ second, so every figure comes in a pair -- and neither bounds the other, because
 the common threshold counts only cross-border supplies. A seller whose electronic
 services are mostly sold at home legitimately declares more on the second.
 
-Nothing is assumed. Opening a year declares four figures -- the two totals and
-their services part -- plus whether every covered sale goes through Facturino.
-Sales made elsewhere are never assumed absent: under ``mixed_channels`` they
-enter through adjustments, and the ledger serves a decision only up to the day
-those channels are declared complete through.
+Opening a year declares four figures -- the two totals and their services part
+-- plus whether every covered sale goes through Facturino. A missing declaration
+leaves ``pending_verification`` without amounts (``eu_threshold_state_missing``);
+no origin taxation or zero turnover is presumed. Under ``mixed_channels``, sales
+made elsewhere enter through adjustments, and the ledger serves a decision only
+up to the day those channels are declared complete through.
+
+Undetermined location-evidence relief leaves ``location_evidence_relief_undetermined``
+pending: declare the services figures or supply a second item. Once destination
+VAT is established, a missing declarative mechanism does not change the place:
+the tax is invoiced and ``destination_mechanism_missing`` explains how to register.
+Notices describe retained results, never missing facts. Act only on ``final``.
 
 The ledger is append-only: there is no update and no delete. Giving an amount
 back is a qualified CORRECTION, which names the movement it corrects; what
 cannot be qualified that way puts the ledger under review instead.
+
+A movement's ``kind`` is one of ``opening``, ``external_adjustment``,
+``external_correction``, ``reservation_consumed``, ``reservation_released``,
+``review_opened`` and ``review_resolved``. ``reservation_released`` gives a
+reserved slice back: zero amounts when it was never consumed, negative amounts
+when a sale counted for a draft is taken back out before any issuance (the
+decision that replaces it counts it once).
 """
 
 from __future__ import annotations

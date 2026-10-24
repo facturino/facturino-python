@@ -1,6 +1,15 @@
 """Products resource — /v1/products
 
 CRUD operations and CSV import/export for product catalog.
+
+Optional ``kind`` (goods or service) and open-string ``supplyCategory`` are stored
+and returned. The latter declares the fiscal category, independently of document
+kind; omission stays undeclared. Responses have the shape of ``Product`` in
+``facturino._types``; existing plain-dict return annotations are preserved.
+
+``vatexCode`` accepts the official CIUS-FR list (88 codes) as an open string.
+Legacy inputs VATEX-FR-261 and VATEX-FR-AUTOLIQ are stored and returned as
+VATEX-FR-CGI261-4 and VATEX-FR-AE. Previously issued documents keep their code.
 """
 
 from __future__ import annotations
@@ -24,8 +33,13 @@ class Products:
             name: Product name.
             unit_price / unitPrice: Price in integer centimes.
             vat_rate / vatRate: VAT rate in centipercent (2000 = 20.00%).
+            vatexCode: Optional official CIUS-FR exemption code; open string.
             description: Product description.
             reference: Internal reference/SKU.
+            category: Catalog category, distinct from fiscal supplyCategory.
+            kind: Optional ``"goods"`` or ``"service"``.
+            supplyCategory: Optional open-string fiscal category: goods, services,
+                electronically_supplied_services, deposit or ancillary_costs.
             unit: Unit of measure (unit, hour, day, kg, etc.).
             tags: List of tags.
             **params: Additional fields.
@@ -56,6 +70,9 @@ class Products:
         return resp.json()  # type: ignore[no-any-return]
 
     def update(self, product_id: str, **params: Any) -> dict[str, Any]:
+        """Update product fields, including reference, category, active, tags,
+        vatCode, vatexCode, kind and the open-string supplyCategory.
+        """
         body = dict(params)
         if "unit_price" in body and "unitPrice" not in body:
             body["unitPrice"] = body.pop("unit_price")
@@ -94,8 +111,13 @@ class AsyncProducts:
             name: Product name.
             unit_price / unitPrice: Price in integer centimes.
             vat_rate / vatRate: VAT rate in centipercent (2000 = 20.00%).
+            vatexCode: Optional official CIUS-FR exemption code; open string.
             description: Product description.
             reference: Internal reference/SKU.
+            category: Catalog category, distinct from fiscal supplyCategory.
+            kind: Optional ``"goods"`` or ``"service"``.
+            supplyCategory: Optional open-string fiscal category: goods, services,
+                electronically_supplied_services, deposit or ancillary_costs.
             unit: Unit of measure (unit, hour, day, kg, etc.).
             tags: List of tags.
             **params: Additional fields.
@@ -126,6 +148,7 @@ class AsyncProducts:
         return resp.json()  # type: ignore[no-any-return]
 
     async def update(self, product_id: str, **params: Any) -> dict[str, Any]:
+        """Update product fields. See :meth:`Products.update`."""
         body = dict(params)
         if "unit_price" in body and "unitPrice" not in body:
             body["unitPrice"] = body.pop("unit_price")

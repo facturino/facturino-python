@@ -360,6 +360,53 @@ class TestCreate:
         assert decision["retryOfTaxDecisionId"] == "taxdec_previous"
 
 
+class TestLocalTaxExemptions:
+    @pytest.mark.parametrize("tax_source", ["facturino", "integration"])
+    @pytest.mark.parametrize("field", ["local_tax_exemption", "localTaxExemption"])
+    @pytest.mark.parametrize("exemption", ["cgism_253", "not_used_in_saint_martin", "future_exemption"])
+    @respx.mock
+    def test_optional_exemption_reaches_the_wire(self, client, tax_source, field, exemption):
+        route = respx.post(f"{BASE}/v1/tax-decisions").mock(
+            return_value=httpx.Response(201, json=FINAL_DECISION)
+        )
+        line = {**DECISION_PARAMS["lines"][0], field: exemption}
+        expected_line = {**EXPECTED_BODY["lines"][0], "localTaxExemption": exemption}
+        if tax_source == "integration":
+            line.update(vat_rate=0, vat_code="O", vatex_code="VATEX-EU-O", place_of_supply="MF")
+            expected_line.update(vatRate=0, vatCode="O", vatexCode="VATEX-EU-O", placeOfSupply="MF")
+        params = {**DECISION_PARAMS, "tax_source": tax_source, "lines": [line]}
+
+        assert client.tax_decisions.create(**params, idempotency_key="local-tax") == FINAL_DECISION
+
+        assert json.loads(route.calls.last.request.content) == {
+            **EXPECTED_BODY, "taxSource": tax_source, "lines": [expected_line],
+        }
+        assert line[field] == exemption  # Alias normalization must not mutate the caller's line.
+
+    @pytest.mark.parametrize("tax_source", ["facturino", "integration"])
+    @pytest.mark.parametrize("field", ["local_tax_exemption", "localTaxExemption"])
+    @pytest.mark.parametrize("exemption", ["cgism_253", "not_used_in_saint_martin", "future_exemption"])
+    @respx.mock
+    async def test_async_optional_exemption_reaches_the_wire(self, tax_source, field, exemption):
+        route = respx.post(f"{BASE}/v1/tax-decisions").mock(
+            return_value=httpx.Response(201, json=FINAL_DECISION)
+        )
+        line = {**DECISION_PARAMS["lines"][0], field: exemption}
+        expected_line = {**EXPECTED_BODY["lines"][0], "localTaxExemption": exemption}
+        if tax_source == "integration":
+            line.update(vat_rate=0, vat_code="O", vatex_code="VATEX-EU-O", place_of_supply="MF")
+            expected_line.update(vatRate=0, vatCode="O", vatexCode="VATEX-EU-O", placeOfSupply="MF")
+        params = {**DECISION_PARAMS, "tax_source": tax_source, "lines": [line]}
+
+        async with facturino.AsyncClient(API_KEY) as client:
+            assert await client.tax_decisions.create(**params, idempotency_key="local-tax") == FINAL_DECISION
+
+        assert json.loads(route.calls.last.request.content) == {
+            **EXPECTED_BODY, "taxSource": tax_source, "lines": [expected_line],
+        }
+        assert line[field] == exemption
+
+
 class TestRetrieve:
     @respx.mock
     def test_gets_by_id(self, client):
@@ -684,6 +731,72 @@ class TestParityGuard:
 
         body = json.loads(route.calls.last.request.content)
         assert body["lines"][0]["goodsMovement"] == "dispatched_to_buyer_territory"
+
+    @respx.mock
+    def test_the_territoriality_rule_reaches_an_integration_line(self, client):
+        """Optional, `general` when absent, and the rule the declared place is checked under."""
+        route = respx.post(f"{BASE}/v1/tax-decisions").mock(
+            return_value=httpx.Response(201, json=FINAL_DECISION)
+        )
+        client.tax_decisions.create(
+            tax_source="integration",
+            customer_id="cus_8f2k4m9n",
+            effective_at="2026-09-15",
+            currency="eur",
+            price_mode="tax_exclusive",
+            lines=[
+                {
+                    "reference": "line-1",
+                    "description": "Prestation",
+                    "category": "services",
+                    "place_of_supply_rule": "general",
+                    "place_of_supply": "FR-MET",
+                    "unit_amount": 2900,
+                    "quantity": "1",
+                    "vat_rate": 2000,
+                    "vat_code": "S",
+                },
+                {
+                    "reference": "line-2",
+                    "description": "Prestation",
+                    "category": "services",
+                    "unit_amount": 2900,
+                    "quantity": "1",
+                    "vat_rate": 2000,
+                    "vat_code": "S",
+                },
+            ],
+            idempotency_key="order-rule",
+        )
+
+        lines = json.loads(route.calls.last.request.content)["lines"]
+        assert lines[0]["placeOfSupplyRule"] == "general"
+        assert lines[0]["placeOfSupply"] == "FR-MET"
+        # Absent stays absent: the API reads it as `general`.
+        assert "placeOfSupplyRule" not in lines[1]
+
+    @respx.mock
+    def test_a_sale_taken_back_out_reads_as_a_release_with_negative_amounts(self, client):
+        page = {
+            "object": "list",
+            "url": "/v1/eu-threshold-ledgers/2026/entries",
+            "data": [{
+                "id": "rev_0123456789abcdef0123456789abcdef",
+                "sequence": 4,
+                "kind": "reservation_released",
+                "amountMin": -12000,
+                "amountMax": -12000,
+                "taxDecisionId": "taxdec_c6_fixture",
+            }],
+            "has_more": False,
+            "next_cursor": None,
+        }
+        respx.get(f"{BASE}/v1/eu-threshold-ledgers/2026/entries").mock(
+            return_value=httpx.Response(200, json=page)
+        )
+        entry = client.eu_threshold_ledgers.list_entries("2026")["data"][0]
+        assert entry["kind"] == "reservation_released"
+        assert entry["amountMin"] < 0 and entry["amountMax"] < 0
 
     @respx.mock
     def test_the_eu_threshold_ledger_round_trips(self, client):

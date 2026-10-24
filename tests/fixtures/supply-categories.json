@@ -1,0 +1,113 @@
+{
+  "product": {
+    "id": "prod_supply_category",
+    "object": "product",
+    "name": "Digital course",
+    "description": "Online training",
+    "reference": "COURSE-1",
+    "unitPrice": 10000,
+    "vatRate": 0,
+    "vatCode": "E",
+    "vatexCode": "VATEX-FR-CGI261-4",
+    "unit": "month",
+    "tags": ["training"],
+    "active": true,
+    "livemode": false,
+    "created": "2026-10-24T10:00:00.000Z",
+    "kind": "service",
+    "supplyCategory": "electronically_supplied_services"
+  },
+  "quote": {
+    "id": "quo_supply_category",
+    "object": "quote",
+    "status": "draft",
+    "items": [
+      {
+        "description": "Digital course",
+        "quantity": "1",
+        "unitPrice": 10000,
+        "vatRate": 0,
+        "vatCode": "E",
+        "vatexCode": "VATEX-FR-CGI261-4",
+        "unit": "month",
+        "kind": "service",
+        "supplyCategory": "electronically_supplied_services"
+      }
+    ]
+  },
+  "convertedInvoice": {
+    "id": "inv_supply_category",
+    "object": "invoice",
+    "status": "draft",
+    "taxSource": null,
+    "items": [],
+    "commercialDraft": {
+      "priceMode": "tax_exclusive",
+      "totalCents": 10000,
+      "lines": [
+        {
+          "description": "Digital course",
+          "quantity": "1",
+          "unitPrice": 10000,
+          "vatRate": 0,
+          "vatCode": "E",
+          "vatexCode": "VATEX-FR-CGI261-4",
+          "unit": "month",
+          "kind": "service",
+          "supplyCategory": "electronically_supplied_services"
+        }
+      ]
+    }
+  },
+  "pendingDecision": {
+    "id": "taxdec_supply_category_pending",
+    "object": "tax_decision",
+    "status": "pending_verification",
+    "lines": [
+      {
+        "reference": "line-1",
+        "description": "Undeclared service",
+        "category": null
+      }
+    ],
+    "totals": null,
+    "amountToCharge": null,
+    "issues": [
+      {
+        "code": "supply_category_not_declared",
+        "message": "Declare the line supply category: the two service readings differ.",
+        "lineId": "line-1"
+      }
+    ],
+    "notices": []
+  },
+  "finalDecision": {
+    "id": "taxdec_supply_category_final",
+    "object": "tax_decision",
+    "status": "final",
+    "lines": [
+      {
+        "reference": "line-1",
+        "description": "Service with the same complete tax result under both readings",
+        "category": "services",
+        "amountHT": 10000,
+        "amountVAT": 2000,
+        "amountTTC": 12000
+      }
+    ],
+    "totals": {
+      "totalHT": 10000,
+      "totalVAT": 2000,
+      "totalTTC": 12000
+    },
+    "amountToCharge": 12000,
+    "issues": [],
+    "notices": [
+      {
+        "code": "supply_category_not_declared",
+        "message": "Both service readings give the same complete tax result.",
+        "lineId": "line-1"
+      }
+    ]
+  }
+}

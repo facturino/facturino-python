@@ -9,6 +9,49 @@ Only a ``final`` decision carries amounts. On ``pending_verification`` or
 ``unsupported``, ``totals`` and ``amountToCharge`` are ``None`` — never ``0``:
 absent is not "nothing to charge".
 
+A service line of a quote or draft without a declared ``supplyCategory`` is read
+under ``services`` and ``electronically_supplied_services``. The same complete
+result (VAT, category, mentions, local tax and the three obligation axes) gives a
+``final`` decision with ``category: services`` and a
+``supply_category_not_declared`` notice. Otherwise the decision is
+``pending_verification``, with that issue, ``category: None`` and no amounts.
+A line with neither ``kind`` nor ``supplyCategory`` stays pending without either
+reading. Direct ``POST /v1/tax-decisions`` still requires ``category`` on every
+line under both sources; its input does not inherit this response nullability.
+
+A decision also carries ``notices``: what it retained and what the seller can
+do next. Always present, empty when there is nothing to report. Notices never
+stand for a missing fact: show them to the seller, and act only on a ``final``
+decision. ``issues`` gives the missing fact and remedy on ``pending_verification``
+or explains an ``unsupported`` refusal. Facturino never replaces a missing fact
+with an assumption. Main pending codes are ``business_status_not_evidenced``,
+``eu_b2b_vat_number_not_validated``, ``non_eu_business_status_not_evidenced``,
+``vies_unavailable``, ``location_evidence_insufficient``,
+``location_evidence_contradictory``, ``location_evidence_relief_undetermined``,
+``eu_threshold_state_missing``, ``goods_movement_unknown`` and
+``com_taaf_supplier_local_tax_liable``.
+
+The only legal presumption is art. 18(2), second subparagraph, of Implementing
+Regulation (EU) 282/2011: telecom, broadcasting and electronic services to a buyer
+established in the EU VAT territory (Monaco included) who communicated no VAT
+number. The buyer is treated as a non-taxable person with a notice and
+``customer.natureBasis: declared_business_not_evidenced``. A communicated but
+unvalidated number leaves ``eu_b2b_vat_number_not_validated`` pending. INSEE
+categories 7, 8 and 9 without ``taxStatus`` keep their refusal
+(``business_status_not_evidenced``, ``detailCode: tax_status_not_declared``).
+``legal_category_unresolved`` means SIRENE could not give the category.
+
+``declared_non_taxable`` means a customer declared ``taxStatus: non_taxable``.
+A legal person carrying a VAT number is checked through VIES: a valid number
+makes its services follow taxable-person rules (CGI art. 259-0); an unreachable
+VIES leaves ``vies_unavailable`` pending. ``natureBasis``, codes and ``detailCode``
+stay open strings.
+
+Optional ``legalCategory`` freezes the SIRENE consultation: ``source`` (sirene),
+``siren``, open-string ``status`` (found, not_found, unavailable), nullable
+open-string ``legalCategoryCode`` and civil-date ``checkedAt`` (YYYY-MM-DD).
+It is absent when no consultation was due, including historical responses.
+
 The resource is immutable by design: there is no update and no delete. To
 re-decide the same operation after supplying missing evidence, create a new
 decision with ``retryOfTaxDecisionId``.
@@ -26,20 +69,72 @@ Every decision states its ``taxSource``:
 Both sources produce the same decision object, feed the same reporting
 obligations engine and back invoices the same way.
 
-``vat_rate``, ``vat_code`` and ``vatex_code`` describe FRENCH VAT: the contract
-has no local-tax jurisdiction, no local tax scheme and no withholding, so the
-``"integration"`` source is not a way to pass one through. Where a local tax of a
-French overseas collectivity or the TAAF (PM, BL, MF, PF, NC, WF, TF) can change
-what is invoiced or what is collected, the decision is not final under EITHER
-source. The one sourced exception is a B2B service located in New Caledonia
-(art. Lp. 507-1). ``place_of_supply`` is therefore required on every
-``"integration"`` line as soon as the buyer is established in one of the seven.
+The seller profile may carry ``localTaxRegistrations``: a list of ``territory``
+(currently ``"MF"``), ``reference``, ``effectiveFrom`` (YYYY-MM-DD) and
+``effectiveTo`` (YYYY-MM-DD or ``None``). A commercial line may carry the open
+string ``localTaxExemption`` (``local_tax_exemption`` on input), currently
+``"cgism_253"`` or ``"not_used_in_saint_martin"``. A decided line may carry
+``localTax``: ``code`` (currently ``"tgca_mf"``), ``rateCentipercent`` (integer),
+``amount`` (integer centimes), ``reference`` and ``exemption`` (string or ``None``).
+Decision and invoice totals may carry ``totalLocalTax`` in integer centimes;
+invoice items may carry the same ``localTax`` object. These fields are optional:
+historical omissions stay absent, and unknown codes, territories and exemptions
+must remain readable. Under both sources, a Saint-Martin registration in force
+gives 4% per line; a declared exemption gives 0 with the mention. Without either,
+``com_taaf_supplier_local_tax_liable`` leaves ``pending_verification``.
+``totalLocalTax`` is included in ``totalTTC``, ``amountToCharge`` and the invoice's
+``amountDue``. Local tax is separate from French VAT.
 
-Territoriality, on the other hand, is the SAME under both sources — including the
-frontier of the perimeter itself: a seller established outside the French VAT
-territory, or a buyer sitting in a territory excluded from the EU VAT territory,
-raises under ``"integration"`` exactly the obstacle it raises under
-``"facturino"``. A B2C sale to a consumer of another member state — an
+``vat_rate``, ``vat_code`` and ``vatex_code`` describe FRENCH VAT. Local tax
+belongs in the separate optional fields above, never in those VAT fields;
+the ``"integration"`` source is not a way to pass withholding through.
+
+``vatexCode`` on invoice lines, credit-note lines, products and tax-decision
+lines takes the official CIUS-FR list (88 codes, including VATEX-FR-CGI261-4,
+VATEX-FR-CGI261-7, VATEX-FR-CGI295 and VATEX-EU-132-1I). Legacy inputs
+VATEX-FR-261 and VATEX-FR-AUTOLIQ are stored and returned as VATEX-FR-CGI261-4 and
+VATEX-FR-AE. A document issued earlier keeps its code. SDK strings stay open;
+the API contract date remains 2026-09-01.
+
+French overseas collectivities and the TAAF (PM, BL, MF, PF, NC, WF, TF) are not
+part of France for VAT (CGI art. 256-0). An operation located there is outside
+French VAT: category ``O`` at 0. Cases settled by a collectivity's text stay
+``final`` under both sources: New Caledonia where the taxable buyer accounts for
+the tax, Saint-Barthélemy, Saint-Pierre-et-Miquelon, and goods shipped to
+Saint-Martin. A seller established there stays ``unsupported`` with
+``seller_com_taaf_local_tax_not_determined``.
+
+Unmodelled cases are ``unsupported`` under ``facturino``, and ``final`` under
+``integration`` with a notice carrying the same code and
+``foreignTaxReviewRequired: true``; the integrator declares and assumes the tax.
+This covers ``com_taaf_local_regime_not_sourced``,
+``com_taaf_local_tax_not_determined``, ``com_taaf_payment_withholding_not_modelled``,
+a buyer in an excluded EU VAT territory such as the Canary Islands, Ceuta or
+Melilla (``eu_special_territory_not_implemented``), and goods dispatched to
+another member state or XI for a non-taxable legal person that communicated a
+VAT number (``non_taxable_legal_person_goods_regime_not_modelled``).
+A general service to a Saint-Martin consumer without ``localTaxExemption``
+carries ``com_taaf_local_regime_not_sourced``,
+``detailCode: french_vat_and_tgca_cumulation``.
+
+Both sources refuse a document mixing category ``O`` with any other category:
+``unsupported``, ``vat_category_o_split_required`` (EN 16931 BR-O-11 to BR-O-14);
+issue two documents. An EU address missing the postal code needed to distinguish
+VAT territories stays non-final under both sources
+(``destination_regional_scope_undetermined``); supply the postal code.
+
+Under ``integration``, a positive French VAT rate on a line located in a
+collectivity answers ``422 integration_vat_incoherent``. ``place_of_supply`` is
+required on every line as soon as the buyer is established in one of the seven.
+
+Notices explain retained results: destination VAT invoiced without a declared
+mechanism (``destination_mechanism_missing``, with registration guidance), a
+consumer territory established by two concordant items of different kinds or
+the same complete tax result on every possible territory, a VAT number set
+aside because national registration establishes status, and local-tax cases
+under ``integration``. They never supply a missing fact.
+
+A B2C sale to a consumer of another member state — an
 electronically supplied service (art. 58) or an intra-EU distance sale of goods
 (art. 33(a)) — traverses the same coverage, the same EUR 10,000 threshold, the
 same option, the same evidence and the same declarative mechanism whichever
@@ -110,6 +205,7 @@ _LINE_ALIASES = {
     "vat_code": "vatCode",
     "vatex_code": "vatexCode",
     "place_of_supply": "placeOfSupply",
+    "local_tax_exemption": "localTaxExemption",
 }
 
 _EVIDENCE_ALIASES = {
@@ -185,14 +281,23 @@ class TaxDecisions:
                 timezone call belongs to the caller.
             currency: ``eur`` only in this ruleset; any other value is refused.
             price_mode: ``tax_exclusive`` or ``tax_inclusive``.
-            lines: Commercial lines. ``unit_amount`` in integer cents,
+            lines: Commercial lines. ``category`` is required on every line
+                under both sources. ``unit_amount`` in integer cents,
                 ``quantity`` as a decimal string. With
                 ``tax_source="integration"`` each line also carries its
                 supplied VAT: ``vat_rate`` (integer centi-percent),
                 ``vat_code`` (S, Z, E, AE, K, G or O) and, when the rate is
                 zero, the ``vatex_code`` and ``place_of_supply`` justifying it.
-                ``place_of_supply`` is also required as soon as the buyer is
-                established in a French overseas collectivity or the TAAF.
+                ``place_of_supply`` (2 to 16 characters) is also required as soon
+                as the buyer is established in a French overseas collectivity or
+                the TAAF. Any line may carry ``place_of_supply_rule``, the
+                territoriality rule of the operation (``general`` when absent,
+                under both sources); on an integration line it is the rule under
+                which ``place_of_supply`` is checked against the place Facturino
+                decides.
+                ``local_tax_exemption`` / ``localTaxExemption`` is optional:
+                an open string, currently ``cgism_253`` or
+                ``not_used_in_saint_martin``.
             location_evidence: Territorial signals — a country and, where the
                 territory needs one, a postal code. Never an IP address, a PSP
                 payload or bank account details.

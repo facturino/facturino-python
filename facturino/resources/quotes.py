@@ -45,7 +45,9 @@ class Quotes:
 
         Args:
             customer: Customer ID.
-            items / lines: List of line items.
+            items / lines: List of line items, each accepting optional kind
+                (goods or service) and open-string supplyCategory. Conversion
+                copies supplyCategory unchanged; omission stays undeclared.
             dates: Dict with issued, validUntil.
             notes: Free-text notes.
         """
@@ -66,6 +68,7 @@ class Quotes:
         return resp.json()  # type: ignore[no-any-return]
 
     def update(self, quote_id: str, **params: Any) -> dict[str, Any]:
+        """Update a quote, including optional kind and supplyCategory on its lines."""
         body = dict(params)
         if "items" in body and "lines" not in body:
             body["lines"] = body.pop("items")
@@ -108,7 +111,10 @@ class Quotes:
         return resp.json()  # type: ignore[no-any-return]
 
     def convert(self, quote_id: str) -> dict[str, Any]:
-        """Convert an accepted quote to a draft invoice. Returns the new invoice."""
+        """Convert an accepted quote to a draft invoice.
+
+        Copies declared supplyCategory unchanged; an omission stays undeclared.
+        """
         resp = self._client.post(f"/v1/quotes/{quote_id}/convert")
         return resp.json()  # type: ignore[no-any-return]
 
@@ -147,7 +153,9 @@ class AsyncQuotes:
 
         Args:
             customer: Customer ID.
-            items / lines: List of line items.
+            items / lines: List of line items, each accepting optional kind
+                (goods or service) and open-string supplyCategory. Conversion
+                copies supplyCategory unchanged; omission stays undeclared.
             dates: Dict with issued, validUntil.
             notes: Free-text notes.
         """
@@ -168,6 +176,7 @@ class AsyncQuotes:
         return resp.json()  # type: ignore[no-any-return]
 
     async def update(self, quote_id: str, **params: Any) -> dict[str, Any]:
+        """Update a quote, including optional kind and supplyCategory on its lines."""
         body = dict(params)
         if "items" in body and "lines" not in body:
             body["lines"] = body.pop("items")
@@ -201,7 +210,7 @@ class AsyncQuotes:
         return resp.json()  # type: ignore[no-any-return]
 
     async def convert(self, quote_id: str) -> dict[str, Any]:
-        """Convert an accepted quote to a draft invoice. Returns the new invoice."""
+        """Convert an accepted quote to a draft invoice. See :meth:`Quotes.convert`."""
         resp = await self._client.post(f"/v1/quotes/{quote_id}/convert")
         return resp.json()  # type: ignore[no-any-return]
 
