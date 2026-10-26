@@ -223,6 +223,7 @@ value = f"{decision['amountToCharge'] / 100:.2f}"
 | `invoiceChannel` | `einvoicing` or `none` — whether the invoice travels the network. |
 | `transactionReporting` | `ereporting`, `none` or `outside_scope`. |
 | `paymentReporting` | `fr212`, `ereporting` or `none`. |
+| `obligationBasis` | Read-only transmission basis frozen with the decision: `legal`, `voluntary_early_adoption` or `None` when no obligation applies or the basis is unresolved. May be absent on historical responses. |
 | `settledObligations` | The axes French law settles DESPITE a non-final decision. `None` when final — the three axes above are then the settled ones. Each axis inside is `None` when it depends on the treatment that could not be concluded. It authorises nothing. |
 | `foreignTaxReviewRequired` | A foreign tax may apply; review it outside Facturino. |
 | `vies` | VIES status only (`valid`, `invalid`, `unavailable`, `invalid_format`). |
@@ -277,6 +278,13 @@ and credit notes freeze the notices of their decision in
 `invoice["taxSnapshot"]["notices"]`; a credit note repeats those of the invoice
 it credits. The `TaxDecisionNotice` and `TaxDecisionIssue` typed dicts describe
 the entries.
+
+The read-only `taxSnapshot["obligationBasis"]` on invoices and credit notes
+also freezes the decision's transmission basis: `"legal"`,
+`"voluntary_early_adoption"` or `None` when no obligation applies or the basis
+is unresolved. Historical snapshots may omit the field. The exported
+`TaxSnapshot` type describes the snapshot; existing document annotations keep
+accepting plain dictionaries.
 
 ### Missing evidence, then a retry
 
@@ -947,6 +955,26 @@ asyncio.run(main())
 > `/portal/:token`, `/quote-portal/:token`) are intentionally not exposed by the
 > SDK: they are opened by the end recipient through a hosted page, not called
 > with an API key.
+
+## E-Reporting Declarations
+
+Declarations returned by `client.ereporting` may include these read-only fields,
+described by the exported `EReporting` response type:
+
+| Field | Meaning |
+|---|---|
+| `obligationBasis` | Frozen transmission basis: `legal` for a legal obligation, `voluntary_early_adoption` for the seller's voluntary early adoption, or `None` when no obligation applies or the basis is unresolved. |
+| `obligationDueFrom` | Legal opening date of the seller's wave, as `YYYY-MM-DD`, frozen at reservation; `None` if unresolved. A batch spanning several waves retains the earliest date. |
+| `acknowledgedBy` | Identified acknowledgement author: `administration` (PPF), `platform` or `None` without an identified acknowledgement. This is independent of acceptance. |
+| `skippedReason` | Non-transmission reason: `nothing_to_declare` with `state: skipped` means local closure without transmission and `obligation.state: completed`, for payments outside French VAT scope with no payment data expected. Open string or `None`. |
+
+Each field may be `None` or absent on historical declarations. Read these
+values from responses; they are not declaration inputs. The API contract date
+remains `2026-09-01`.
+
+The summary `status: skipped` alone does not establish local closure: it can
+also summarize a `blocked` declaration whose obligation remains due. Read
+`state`, `skippedReason` and `obligation` together; `state` remains an open string.
 
 ## Recording Payments
 

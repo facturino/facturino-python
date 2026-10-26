@@ -606,6 +606,7 @@ class Invoice(TypedDict, total=False):
     taxDecisionId: str
     taxSource: Literal["facturino", "integration"]
     commercialDraft: dict[str, Any] | None
+    # Shape of TaxSnapshot, kept as a plain dict for existing callers.
     # Frozen fiscal position copied from the decision. Its "notices" key holds the
     # decision's notices frozen with it (the shape of TaxDecisionNotice): what
     # was retained and what the seller can do next. Empty when nothing is to
@@ -934,6 +935,9 @@ class TaxDecision(TypedDict, total=False):
     invoiceChannel: Literal["einvoicing", "none"] | None
     transactionReporting: Literal["ereporting", "none", "outside_scope"] | None
     paymentReporting: Literal["fr212", "ereporting", "none"] | None
+    # Read-only transmission basis, frozen with the decision; historical responses
+    # may omit it. None when no obligation applies or the basis is unresolved.
+    obligationBasis: Literal["legal", "voluntary_early_adoption"] | None
     settledObligations: dict[str, Any] | None
     euB2cDestination: dict[str, Any] | None
     foreignTaxReviewRequired: bool
@@ -952,6 +956,42 @@ class TaxDecision(TypedDict, total=False):
     livemode: bool
     created: str
     updated: str
+
+
+class TaxSnapshot(TypedDict, total=False):
+    """Read-only fiscal position frozen on an invoice or credit note.
+
+    Invoice.taxSnapshot and CreditNote.taxSnapshot keep their plain dict
+    annotations for existing callers; this type describes their response shape.
+    """
+
+    taxDecisionId: str
+    taxSource: Literal["facturino", "integration"]
+    decidedAt: str
+    effectiveAt: str
+    expiresAt: str
+    rulesVersion: str
+    reportingCalendar: str | None
+    roundingPolicy: str
+    operationFingerprint: str
+    priceMode: Literal["tax_exclusive", "tax_inclusive"]
+    currency: str
+    seller: dict[str, Any]
+    buyer: dict[str, Any]
+    lines: list[dict[str, Any]]
+    invoiceChannel: Literal["einvoicing", "none"] | None
+    transactionReporting: Literal["ereporting", "none", "outside_scope"] | None
+    paymentReporting: Literal["fr212", "ereporting", "none"] | None
+    # Frozen transmission basis; None when no obligation applies or unresolved.
+    # Historical snapshots may omit it.
+    obligationBasis: Literal["legal", "voluntary_early_adoption"] | None
+    foreignTaxReviewRequired: bool
+    euB2cDestination: dict[str, Any] | None
+    totals: dict[str, Any]
+    vatBreakdown: list[dict[str, Any]]
+    amountToChargeCents: int
+    notices: list[TaxDecisionNotice]
+    legalMentions: list[str]
 
 
 class CreditNote(TypedDict, total=False):
@@ -980,6 +1020,7 @@ class CreditNote(TypedDict, total=False):
     originalInvoiceId: str
     originalTaxDecisionId: str
     taxSource: Literal["facturino", "integration"]
+    # Shape of TaxSnapshot, kept as a plain dict for existing callers.
     # Fiscal position inherited from the invoice. Its "notices" key repeats the
     # notices of the invoice it credits (the shape of TaxDecisionNotice): what was
     # retained and what the seller can do next. Empty when nothing is to report;
@@ -1095,7 +1136,13 @@ class EReporting(TypedDict, total=False):
     id: str
     object: Literal["ereporting"]
     status: str
+    # Known states: reserved, submitting, queued, submitted, acknowledged, accepted,
+    # rejected, blocked, skipped, reconciliation_required. Open for future values.
     state: str
+    # Read-only; may be absent on historical declarations. "nothing_to_declare"
+    # with state "skipped" closes locally without transmission for payments outside
+    # French VAT scope; obligation.state is "completed".
+    skippedReason: str | None
     type: str
     period: str
     periodStart: str | None
@@ -1106,6 +1153,14 @@ class EReporting(TypedDict, total=False):
     lines: list[dict[str, Any]]
     attempt: int
     obligation: ObligationFollowUp | None
+    # Frozen transmission basis; None when no obligation applies or unresolved.
+    # All three read-only fields may be absent on historical declarations.
+    obligationBasis: Literal["legal", "voluntary_early_adoption"] | None
+    # Legal opening date of the seller's wave (YYYY-MM-DD), or None if unresolved.
+    # A batch spanning several waves retains the earliest date.
+    obligationDueFrom: str | None
+    # Acknowledgement author, independent of acceptance; None without an identified author.
+    acknowledgedBy: Literal["administration", "platform"] | None
     paRejectionCode: str | None
     paRejectionReason: str | None
     blockedReason: str | None

@@ -6,6 +6,14 @@ project adheres to [Semantic Versioning](https://semver.org/) and
 
 ## [Unreleased]
 
+## [2.12.0] - 2026-10-26
+
+### Added
+- Optional read-only `EReporting.skippedReason` (string or `None`): `nothing_to_declare` with `state: skipped` closes a declaration locally without transmission and with an obligation `completed`, for payments outside French VAT scope. Historical declarations may omit the field; state and reason remain open strings.
+- Optional read-only `EReporting.obligationBasis` (`legal`, `voluntary_early_adoption` or `None`), `obligationDueFrom` (`YYYY-MM-DD` or `None`) and `acknowledgedBy` (`administration`, `platform` or `None`): the frozen transmission basis, the legal opening date of the seller's wave and the acknowledgement author. Historical declarations may omit these fields; acknowledgement is independent of acceptance.
+- Optional read-only `TaxDecision.obligationBasis` and `taxSnapshot["obligationBasis"]` on invoices and credit notes, with the same nullable transmission basis. Historical omissions remain valid.
+- Exported `EReporting` and `TaxSnapshot` response TypedDicts. Existing plain-dict snapshot annotations remain compatible. The API contract date remains 2026-09-01.
+
 ## [2.11.0] - 2026-10-24
 
 ### Added

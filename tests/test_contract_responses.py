@@ -75,12 +75,159 @@ def decision_with(customer, **fields):
     return {**body, **fields}
 
 
-def test_the_corpus_carries_notices_and_the_retained_vat_number():
+def test_the_corpus_carries_frozen_decision_fields():
     decision = fixture("taxDecision")
     assert decision["notices"] == []
     assert decision["customer"]["retainedVatNumber"] is None
+    assert decision["obligationBasis"] == "legal"
+    # The shared invoice is bound to a historical decision: the basis is omitted, not null.
+    assert "obligationBasis" not in fixture("invoice")["taxSnapshot"]
     assert fixture("invoice")["taxSnapshot"]["notices"] == []
     assert fixture("creditNote")["taxSnapshot"]["notices"] == []
+
+
+def test_reporting_obligation_fields_are_optional_nullable_and_exported():
+    for model in (_types.EReporting, _types.TaxDecision, _types.TaxSnapshot):
+        hints = get_type_hints(model)
+        assert hints["obligationBasis"] == Literal["legal", "voluntary_early_adoption"] | None
+        assert "obligationBasis" in model.__optional_keys__
+    reporting = get_type_hints(_types.EReporting)
+    assert reporting["obligationDueFrom"] == str | None
+    assert reporting["acknowledgedBy"] == Literal["administration", "platform"] | None
+    assert {"obligationDueFrom", "acknowledgedBy"} <= _types.EReporting.__optional_keys__
+    for model in (_types.EReporting, _types.TaxSnapshot):
+        assert getattr(facturino, model.__name__) is model
+        assert model.__name__ in facturino.__all__
+    snapshot = get_type_hints(_types.TaxSnapshot)
+    for name, model in (("invoice", _types.Invoice), ("creditNote", _types.CreditNote)):
+        assert set(fixture(name)["taxSnapshot"]) <= set(snapshot)
+        assert get_type_hints(model)["taxSnapshot"] == dict[str, Any]
+
+
+REPORTING_OBLIGATION_FIELDS = [
+    pytest.param({
+        "obligationBasis": "legal", "obligationDueFrom": "2026-09-01", "acknowledgedBy": "administration",
+    }, id="legal"),
+    pytest.param({
+        "obligationBasis": "voluntary_early_adoption", "obligationDueFrom": "2027-09-01", "acknowledgedBy": "platform",
+    }, id="voluntary"),
+    pytest.param({
+        "obligationBasis": None, "obligationDueFrom": None, "acknowledgedBy": None,
+    }, id="null"),
+    pytest.param({}, id="historical"),
+]
+
+
+def reporting_declaration_with(fields):
+    return {
+        "id": "erep_fixture", "object": "ereporting", "status": "submitted",
+        "type": "b2c", "period": "2026-10", **fields,
+    }
+
+
+@pytest.mark.parametrize("fields", REPORTING_OBLIGATION_FIELDS)
+@respx.mock
+def test_declaration_preserves_reporting_obligation_fields(fields):
+    body = reporting_declaration_with(fields)
+    respx.get(f"{DEFAULT_BASE_URL}/v1/ereporting/declarations/{body['id']}").respond(json=body)
+    with facturino.Client("fac_test_corpus") as client:
+        assert client.ereporting.get(body["id"]) == body
+    assert set(body) <= set(get_type_hints(_types.EReporting))
+
+
+@pytest.mark.parametrize("fields", REPORTING_OBLIGATION_FIELDS)
+@respx.mock
+async def test_async_declaration_preserves_reporting_obligation_fields(fields):
+    body = reporting_declaration_with(fields)
+    respx.get(f"{DEFAULT_BASE_URL}/v1/ereporting/declarations/{body['id']}").respond(json=body)
+    async with facturino.AsyncClient("fac_test_corpus") as client:
+        assert await client.ereporting.get(body["id"]) == body
+
+
+def test_reporting_skipped_reason_is_optional_nullable_and_open():
+    hints = get_type_hints(_types.EReporting)
+    assert hints["state"] is str
+    assert hints["skippedReason"] == str | None
+    assert "skippedReason" in _types.EReporting.__optional_keys__
+    assert "skippedReason" not in get_type_hints(_types.EreportingCreateParams)
+
+
+REPORTING_SKIPPED_FIELDS = [
+    pytest.param({
+        "status": "skipped", "state": "skipped", "skippedReason": "nothing_to_declare",
+        "type": "payment_international",
+        "obligation": {
+            "state": "completed", "reasonCode": None, "reasonSource": None,
+            "owner": None, "action": None, "nextAttemptAt": None,
+        },
+    }, id="nothing-to-declare"),
+    pytest.param({"state": "reserved", "skippedReason": None}, id="null"),
+    pytest.param({"status": "skipped", "state": "blocked"}, id="historical"),
+    pytest.param({"state": "future_state", "skippedReason": "future_reason"}, id="future"),
+]
+
+
+@pytest.mark.parametrize("fields", REPORTING_SKIPPED_FIELDS)
+@respx.mock
+def test_declaration_preserves_skipped_reason(fields):
+    body = reporting_declaration_with(fields)
+    respx.get(f"{DEFAULT_BASE_URL}/v1/ereporting/declarations/{body['id']}").respond(json=body)
+    with facturino.Client("fac_test_corpus") as client:
+        assert client.ereporting.get(body["id"]) == body
+    assert set(body) <= set(get_type_hints(_types.EReporting))
+
+
+@pytest.mark.parametrize("fields", REPORTING_SKIPPED_FIELDS)
+@respx.mock
+async def test_async_declaration_preserves_skipped_reason(fields):
+    body = reporting_declaration_with(fields)
+    respx.get(f"{DEFAULT_BASE_URL}/v1/ereporting/declarations/{body['id']}").respond(json=body)
+    async with facturino.AsyncClient("fac_test_corpus") as client:
+        assert await client.ereporting.get(body["id"]) == body
+
+
+OBLIGATION_BASIS_FIELDS = [
+    pytest.param({"obligationBasis": "legal"}, id="legal"),
+    pytest.param({"obligationBasis": "voluntary_early_adoption"}, id="voluntary"),
+    pytest.param({"obligationBasis": None}, id="null"),
+    pytest.param({}, id="historical"),
+]
+
+
+def resource_with_obligation_basis(name, fields):
+    body = fixture(name)
+    position = body if name == "taxDecision" else body["taxSnapshot"]
+    position.pop("obligationBasis", None)
+    position.update(fields)
+    return body
+
+
+@pytest.mark.parametrize("name,resource,path", [
+    ("taxDecision", "tax_decisions", "tax-decisions"),
+    ("invoice", "invoices", "invoices"),
+    ("creditNote", "credit_notes", "credit-notes"),
+])
+@pytest.mark.parametrize("fields", OBLIGATION_BASIS_FIELDS)
+@respx.mock
+def test_decision_and_snapshot_preserve_obligation_basis(name, resource, path, fields):
+    body = resource_with_obligation_basis(name, fields)
+    respx.get(f"{DEFAULT_BASE_URL}/v1/{path}/{body['id']}").respond(json=body)
+    with facturino.Client("fac_test_corpus") as client:
+        assert getattr(client, resource).get(body["id"]) == body
+
+
+@pytest.mark.parametrize("name,resource,path", [
+    ("taxDecision", "tax_decisions", "tax-decisions"),
+    ("invoice", "invoices", "invoices"),
+    ("creditNote", "credit_notes", "credit-notes"),
+])
+@pytest.mark.parametrize("fields", OBLIGATION_BASIS_FIELDS)
+@respx.mock
+async def test_async_decision_and_snapshot_preserve_obligation_basis(name, resource, path, fields):
+    body = resource_with_obligation_basis(name, fields)
+    respx.get(f"{DEFAULT_BASE_URL}/v1/{path}/{body['id']}").respond(json=body)
+    async with facturino.AsyncClient("fac_test_corpus") as client:
+        assert await getattr(client, resource).get(body["id"]) == body
 
 
 def test_legal_category_is_optional_exported_and_preserves_open_strings():

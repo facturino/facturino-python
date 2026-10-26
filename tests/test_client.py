@@ -79,6 +79,7 @@ class TestHeaders:
         request = route.calls[0].request
         assert request.headers["authorization"] == f"Bearer {API_KEY}"
         assert request.headers["user-agent"] == f"facturino-python/{VERSION}"
+        assert request.headers["facturino-version"] == "2026-09-01"
         assert request.headers["accept"] == "application/json"
         http.close()
 
